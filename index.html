@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>進料棧板標籤多功能管理系統 (2x3滿版極限字體版)</title>
+    <title>進料棧板標籤多功能管理系統 (智慧防重字體優化版)</title>
     <style>
         body { font-family: "SimHei", "黑體", "新細明體", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
         .container { max-width: 1050px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -30,8 +30,8 @@
         .data-list th { background-color: #f1f3f5; }
         .edit-input { width: 95%; padding: 4px; box-sizing: border-box; }
         .count-input { width: 45px; padding: 4px; text-align: center; }
+        .config-panel { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; font-weight: bold; }
 
-        /* 畫面上預覽列印區塊（不影響實際列印） */
         #printArea { background: #666; padding: 10px; display: none; }
 
         /* ==================== 列印專用 A4 2x3 滿版樣式 ==================== */
@@ -40,39 +40,37 @@
             .no-print { display: none !important; }
             #printArea { display: block !important; background: transparent; padding: 0; }
             
-            /* A4 滿版頁面外殼，完全拔除邊距 */
             .page { width: 210mm; height: 297mm; page-break-after: always; box-sizing: border-box; overflow: hidden; padding: 0; margin: 0; }
             
-            /* 2x3 貼紙格局 (滿版計算：寬100mm*2 = 200mm, 橫向留白10mm分配在邊緣；高93mm*3 = 279mm) */
             .label-cell { width: 100mm; height: 93mm; float: left; margin: 0; border: none; box-sizing: border-box; padding: 4mm 6mm; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
             
-            /* 為了避免任何歪斜，每頁第1、3、5張(左邊欄)左側給予5mm初始位移，達成左右均分 */
             .label-cell:nth-child(2n+1) { padding-left: 10mm; padding-right: 2mm; }
             .label-cell:nth-child(2n) { padding-left: 2mm; padding-right: 10mm; }
 
             .svg-line-container { width: 100%; height: 100%; display: block; overflow: hidden; }
             
-            /* 模式一高度分配 (4行版面) */
             .m1-h1 { height: 16mm; } 
             .m1-h2 { height: 22mm; } 
             .m1-h3 { height: 22mm; } 
             .m1-h4 { height: 22mm; } 
 
-            /* 模式二高度分配 (3行版面) */
             .m2-h1 { height: 24mm; } 
             .m2-h2 { height: 32mm; } 
             .m2-h3 { height: 32mm; } 
-            
-            /* 強制極限黑體粗體 */
-            text { font-family: "SimHei", "黑體", "Arial Black", sans-serif !important; font-weight: 900 !important; }
         }
     </style>
 </head>
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (2x3 A4滿版最終優化版)</h2>
+        <h2>棧板標籤自動流轉系統 (智慧防重字體優化版)</h2>
         
+        <div class="config-panel">
+            <label style="cursor: pointer;">
+                <input type="checkbox" id="enableAlert" checked> 當偵測到早上下午重複項目時，顯示彈窗提示（若取消勾選，系統會直接靜態將舊單歸0並補進新單）
+            </label>
+        </div>
+
         <div class="tabs">
             <div class="tab active" onclick="switchTab(1)">模式一：貼上直式文字(1*6)</div>
             <div class="tab" onclick="switchTab(2)">模式二：貼上網頁進料表</div>
@@ -80,13 +78,13 @@
         </div>
 
         <div id="tab1" class="tab-content active">
-            <p>請貼上第一種原始文字資料（依開頭流水編號如 1165 判斷重複）：</p>
+            <p>請貼上第一種原始文字資料（依開頭流水編號判斷重複）：</p>
             <textarea id="textData1" placeholder="1165	260625&#10;王水欽	EM-890..."></textarea>
             <button onclick="parseMode1()">剖析並匯入</button>
         </div>
 
         <div id="tab2" class="tab-content">
-            <p>請直接將網頁整段複製（將精準識別開頭序號，且日期自動靠左、右邊留空）：</p>
+            <p>請直接將網頁整段複製（重疊貼上時，早上項目張數自動歸0，下午新項目自動帶入）：</p>
             <textarea id="textData2" placeholder="直接把網頁複製的進料管理表資料整段貼在這裡..."></textarea>
             <button onclick="parseMode2()">智慧剖析並匯入</button>
         </div>
@@ -100,10 +98,10 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>比對唯一編號(流水號/序號)：</label><input type="text" id="manualPureCode" placeholder="如：1165 或 1">
+                <label>比對唯一編號：</label><input type="text" id="manualPureCode" placeholder="如：1165 或 原料編號">
             </div>
             <div class="form-group">
-                <label>第二行內容：</label><input type="text" id="manualL2" placeholder="如：EM-890 或 1-Nn16-U1EA">
+                <label>第二行內容：</label><input type="text" id="manualL2" placeholder="如：EM-890">
             </div>
             <div id="manualL3Group" class="form-group">
                 <label>第三行內容 (規格)：</label><input type="text" id="manualL3" placeholder="如：RTF3 4mil 1/H 1035*2">
@@ -126,14 +124,14 @@
             <button class="danger" onclick="clearAllData()">清空記憶資料庫</button>
         </div>
 
-        <h3>資料庫清單 (模式1看流水號/模式2看序號防重)</h3>
+        <h3>資料庫清單 (已開啟用印張數動態控制)</h3>
         <table class="data-list">
             <thead>
                 <tr>
                     <th width="4%">序</th>
                     <th width="12%">版型</th>
-                    <th width="12%">比對判定編號</th>
-                    <th width="23%">第二行顯示內容</th>
+                    <th width="15%">比對判定編號</th>
+                    <th width="20%">第二行顯示內容</th>
                     <th width="20%">第三行顯示內容</th>
                     <th width="17%">第四行顯示內容</th>
                     <th width="6%">首張QA</th>
@@ -201,6 +199,7 @@
             var lines = txt.split('\n');
             var currentChunk = [];
             var db = getDB();
+            var showAlert = document.getElementById('enableAlert').checked;
 
             for(var i=0; i<lines.length; i++) {
                 if(lines[i].trim() !== "") currentChunk.push(lines[i]);
@@ -228,8 +227,9 @@
 
                         var dupIdx = checkDuplicateKey(db, 'mode1', pureSerialNo);
                         if(dupIdx !== -1) {
-                            if(confirm("模式一：流水號【" + pureSerialNo + "】已存在！\n點擊「確定」累加列印張數，點擊「取消」跳過。")) {
-                                db[dupIdx].printCount += 1;
+                            db[dupIdx].printCount = 0; // 早上舊單自動歸 0 
+                            if(showAlert) {
+                                alert("模式一：流水號【" + pureSerialNo + "】屬於早前重複資料，已將舊單列印張數自動重設為 0。");
                             }
                         } else {
                             db.push({ mode: 'mode1', pureCode: pureSerialNo, line2: line2_val, line3: line3_val, line4: line4_val, isQA: false, printCount: 1 });
@@ -243,15 +243,15 @@
             alert("模式一處理完成！");
         }
 
-        // 【模式二剖析：進階精準序號識別】
+        // 【模式二剖析：進階跨時段防重複重置】
         function parseMode2() {
             var txt = document.getElementById('textData2').value.trim();
             if(!txt) return;
             var lines = txt.split('\n');
             var db = getDB();
             var importCount = 0;
+            var showAlert = document.getElementById('enableAlert').checked;
 
-            // PCB原料編號核心格式正則表達式
             var partNoRegex = /(1-[A-Za-z0-9]{4}-([A-Za-z0-9]{4}|[A-Za-z0-9]{5,6}))/;
 
             for(var i=0; i<lines.length; i++) {
@@ -262,25 +262,19 @@
                 if(match) {
                     var purePartNo = match[1]; 
                     var partNoIdx = match.index;
-
-                    // 擷取原料編號前半段（處理可能黏著的序號與日期）
                     var frontPart = line.substring(0, partNoIdx).trim();
                     
                     var pureSeqNo = "";
-                    var dateNo = "26 6/29"; // 預設安全彈性值
+                    var dateNo = "26 6/29"; 
 
-                    // 利用2026開頭的日期特徵，將前方的獨立序號完全解析出來
                     var dateMatch = frontPart.match(/(20\d{6})/);
                     if(dateMatch) {
                         var dateStrRaw = dateMatch[1];
                         var dateIndex = frontPart.indexOf(dateStrRaw);
-                        
-                        // 日期前面的純數字，就是我們要防重的關鍵「網頁序號」
                         var prefixSeq = frontPart.substring(0, dateIndex).trim();
                         pureSeqNo = prefixSeq ? prefixSeq : (importCount + 1).toString();
                         dateNo = formatDateStr(dateStrRaw);
                     } else {
-                        // 防呆 fallback
                         var seqMatch = frontPart.match(/^(\d+)/);
                         pureSeqNo = seqMatch ? seqMatch[1] : (importCount + 1).toString();
                     }
@@ -292,14 +286,19 @@
                     var line3_val = ""; 
                     var line4_val = dateNo;
 
-                    // 依據純序號（1, 2, 3...）判斷重複
-                    var dupIdx = checkDuplicateKey(db, 'mode2', pureSeqNo);
+                    // 使用「原料編號+序號組合」進行更精準的判定
+                    var uniqueKey = purePartNo + " (#" + pureSeqNo + ")";
+
+                    var dupIdx = checkDuplicateKey(db, 'mode2', uniqueKey);
                     if(dupIdx !== -1) {
-                        if(confirm("模式二：網頁序號【" + pureSeqNo + "】已存在！\n點擊「確定」累加列印張數，點擊「取消」跳過。")) {
-                            db[dupIdx].printCount += 1;
+                        // 如果是早上的重複項，將其設定為 0 張
+                        db[dupIdx].printCount = 0;
+                        if(showAlert) {
+                            alert("模式二：項目【" + purePartNo + "】偵測到早上下午重疊，已自動將舊資料列印張數歸零。");
                         }
                     } else {
-                        db.push({ mode: 'mode2', pureCode: pureSeqNo, line2: line2_val, line3: line3_val, line4: line4_val, isQA: hasIqc, printCount: 1 });
+                        // 下午全新的項目補進來，設定為 1 張
+                        db.push({ mode: 'mode2', pureCode: uniqueKey, line2: line2_val, line3: line3_val, line4: line4_val, isQA: hasIqc, printCount: 1 });
                     }
                     importCount++;
                 }
@@ -307,13 +306,12 @@
             saveDB(db);
             document.getElementById('textData2').value = '';
             if(importCount > 0) {
-                alert("模式二智慧解析成功，已匯入並處理完畢！");
+                alert("模式二智慧過濾處理完成！新單已自動補進，舊單列印張數已歸 0。");
             } else {
-                alert("未偵測到符合工廠規格原料編號的資料列，請重新確認貼上內容。");
+                alert("未偵測到符合工廠規格原料編號的資料。");
             }
         }
 
-        // 【模式三手動新增】
         function parseMode3() {
             var m = document.getElementById('manualMode').value;
             var pCode = document.getElementById('manualPureCode').value.trim();
@@ -328,11 +326,8 @@
             var db = getDB();
             var dupIdx = checkDuplicateKey(db, m, pCode);
             if(dupIdx !== -1) {
-                if(confirm("手動模式：此判定編號【" + pCode + "】已存在！\n點擊「確定」累加列印張數，點擊「取消」強行新增。")) {
-                    db[dupIdx].printCount += 1;
-                    saveDB(db);
-                    return;
-                }
+                db[dupIdx].printCount = 0;
+                alert("判定編號已存在，已將原本標籤的列印張數設為 0。");
             }
 
             db.push({ mode: m, pureCode: pCode, line2: l2, line3: l3, line4: l4, isQA: iqc, printCount: 1 });
@@ -352,12 +347,13 @@
             for(var i=0; i<db.length; i++) {
                 var item = db[i];
                 var tr = document.createElement('tr');
-                var modeText = item.mode === 'mode1' ? '<span style="color:blue;font-weight:bold;">模式1(流水防重)</span>' : '<span style="color:green;font-weight:bold;">模式2(序號防重)</span>';
+                var modeText = item.mode === 'mode1' ? '<span style="color:blue;font-weight:bold;">模式1</span>' : '<span style="color:green;font-weight:bold;">模式2</span>';
                 var disabledL3 = item.mode === 'mode2' ? 'disabled style="background:#eee"' : '';
+                var highlightStyle = item.printCount === 0 ? 'style="background:#f8d7da; color:#721c24;"' : '';
 
-                tr.innerHTML = '<td>' + (i+1) + '</td>' +
-                    '<td>' + modeText + '</td>' +
-                    '<td><b style="color:#d9534f">' + item.pureCode + '</b></td>' +
+                tr.innerHTML = '<td '+highlightStyle+'>' + (i+1) + '</td>' +
+                    '<td '+highlightStyle+'>' + modeText + '</td>' +
+                    '<td '+highlightStyle+'><b>' + item.pureCode + '</b></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line2+'" onchange="updateItem('+i+', \'line2\', this.value)"></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line3+'" '+disabledL3+' onchange="updateItem('+i+', \'line3\', this.value)"></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line4+'" onchange="updateItem('+i+', \'line4\', this.value)"></td>' +
@@ -376,6 +372,7 @@
             var db = getDB();
             db[idx][field] = value;
             localStorage.setItem('palletSysDB', JSON.stringify(db));
+            if(field === 'printCount') { renderTable(); }
         }
 
         function deleteItem(idx) {
@@ -390,8 +387,8 @@
             if(confirm("確定要清空整個資料庫？")) { saveDB([]); }
         }
 
-        // 【無損向量拉伸 SVG 核心：精準控制文字對齊錨點】
-        function makeSvgLine(textStr, alignMode) {
+        // 【過長字體智慧審核降級機制 + 粗細體分流 SVG 渲染核心】
+        function makeSvgLine(textStr, alignMode, fontWeightMode) {
             if(!textStr || textStr.trim() === "" || textStr === "&nbsp;") {
                 return '&nbsp;';
             }
@@ -399,15 +396,25 @@
             var xPos = "50%";
             
             if(alignMode === "left") {
-                textAnchor = "start"; // 靠左對齊
-                xPos = "0%";          // 貼緊最左邊界
+                textAnchor = "start";
+                xPos = "0%";
             } else if(alignMode === "right") {
-                textAnchor = "end";   // 靠右對齊
-                xPos = "100%";        // 貼緊最右邊界
+                textAnchor = "end";
+                xPos = "100%";
             }
 
-            return '<svg class="svg-line-container" viewBox="0 0 100 12" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
-                   '<text x="'+xPos+'" y="10" font-family="SimHei, 黑體, Arial Black" font-weight="900" font-size="11" fill="#000" stroke="#000" stroke-width="0.35" text-anchor="'+textAnchor+'">' + textStr + '</text>' +
+            // 依據傳入參數設定粗體字或正常體字
+            var weightAttr = (fontWeightMode === "bold") ? 'font-weight="900" stroke-width="0.35" fill="#000" stroke="#000"' : 'font-weight="normal" stroke-width="0" fill="#000"';
+
+            // 審核字體長度機制：字數如果多於 11 個字，切換為 meet 防止溢出格線
+            var aspectRatio = "none";
+            if (textStr.length > 11) {
+                aspectRatio = "xMidYMid meet"; 
+                if(alignMode === "left") aspectRatio = "xMinYMid meet";
+            }
+
+            return '<svg class="svg-line-container" viewBox="0 0 100 12" preserveAspectRatio="' + aspectRatio + '" xmlns="http://www.w3.org/2000/svg">' +
+                   '<text x="'+xPos+'" y="10" font-family="SimHei, 黑體, Arial" font-size="11" ' + weightAttr + ' text-anchor="'+textAnchor+'">' + textStr + '</text>' +
                    '</svg>';
         }
 
@@ -422,6 +429,7 @@
 
             for(var i=0; i<db.length; i++) {
                 var item = db[i];
+                if(item.printCount <= 0) continue; // 張數為 0 的歷史項目直接不印
                 
                 for(var c=0; c<item.printCount; c++) {
                     if(cellCounter % labelsPerPage === 0) {
@@ -432,21 +440,25 @@
                     var isCurrentQA = (item.isQA && c === 0);
 
                     if (item.mode === 'mode1') {
-                        var l4_text = item.line4 + (isCurrentQA ? "  多QA" : "");
-                        // 模式一：全部維持居中填滿
+                        // 模式一粗細字流分流控制
+                        var qaSuffix = isCurrentQA ? "  QA" : "";
+                        var l4_text = item.line4 + qaSuffix;
+
                         html += '<div class="label-cell">' +
                                 '<div class="m1-h1"></div>' + 
-                                '<div class="m1-h2">' + makeSvgLine(item.line2, "center") + '</div>' +
-                                '<div class="m1-h3">' + makeSvgLine(item.line3, "center") + '</div>' +
-                                '<div class="m1-h4">' + makeSvgLine(l4_text, "center") + '</div>' +
+                                '<div class="m1-h2">' + makeSvgLine(item.line2, "center", "bold") + '</div>' + // 第二行 粗體
+                                '<div class="m1-h3">' + makeSvgLine(item.line3, "center", "normal") + '</div>' + // 第三行 正常體
+                                '<div class="m1-h4">' + makeSvgLine(l4_text, "center", "normal") + '</div>' + // 第四行+QA 正常體
                                 '</div>';
                     } else {
-                        var l3_text = item.line4 + (isCurrentQA ? "  多QA" : "");
-                        // 模式二：最後一行日期人員傳入 "left"，使其靠左對齊，右邊留空
+                        // 模式二粗細字流分流控制
+                        var qaSuffix = isCurrentQA ? "  QA" : "";
+                        var l3_text = item.line4 + qaSuffix;
+
                         html += '<div class="label-cell">' +
                                 '<div class="m2-h1"></div>' + 
-                                '<div class="m2-h2">' + makeSvgLine(item.line2, "center") + '</div>' +
-                                '<div class="m2-h3">' + makeSvgLine(l3_text, "left") + '</div>' +
+                                '<div class="m2-h2">' + makeSvgLine(item.line2, "center", "bold") + '</div>' + // 第二行 原料編號 粗體
+                                '<div class="m2-h3">' + makeSvgLine(l3_text, "left", "normal") + '</div>' + // 第三行 日期+QA 靠左正常體
                                 '</div>';
                     }
                     cellCounter++;
@@ -455,9 +467,10 @@
             if(cellCounter > 0) html += '</div>';
             printArea.innerHTML = html;
 
-            if(cellCounter === 0) { alert("沒有任何要列印的標籤張數。"); return; }
+            if(cellCounter === 0) { alert("當前沒有任何有效列印張數大於 0 的標籤。"); return; }
             window.print();
         }
     </script>
 </body>
 </html>
+
