@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>進料棧板標籤系統</title>
+    <title>進料棧板標籤多功能管理系統 (智慧防重字體優化版)</title>
     <style>
         body { font-family: "SimHei", "黑體", "新細明體", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
         .container { max-width: 1050px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -45,9 +45,9 @@
             /* 單張貼紙 寬98mm 高90mm */
             .label-cell { width: 98mm; height: 90mm; float: left; margin: 0; border: none; box-sizing: border-box; padding: 4mm 5mm; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
             
-            /* 微調左右對稱間距 */
-            .label-cell:nth-child(2n+1) { margin-right: 4mm; }
-            .label-cell:nth-child(2n) { margin-left: 0mm; }
+            /* 調整左右對稱間距 保持中間有 0.2cm (2mm) 左右空白間隙 */
+            .label-cell:nth-child(2n+1) { margin-right: 2mm; }
+            .label-cell:nth-child(2n) { margin-left: 2mm; }
 
             .svg-line-container { width: 100%; height: 100%; display: block; overflow: hidden; }
             
@@ -183,7 +183,6 @@
                 return yy + " " + mm + "/" + dd;
             }
             return dStr;
-            return dStr;
         }
 
         function checkDuplicateKey(db, mode, checkCode) {
@@ -249,9 +248,9 @@
                         }
                         var formattedDate = datePart ? formatDateStr(datePart) : "26 6/29";
 
-                        // 特殊修正規則：比對追蹤碼 1183260629，第四行強制更正為指定規格
+                        // 特殊修正規則：當偵測到特定錯誤追蹤碼及人員時，第四行強制更正為指定標準格式
                         var line4_val = "";
-                        if (customTrackingCode.indexOf("1183260629") !== -1 || txt.indexOf("1183260629") !== -1 && name.indexOf("王水欽") !== -1) {
+                        if (customTrackingCode.indexOf("1183260629") !== -1 || txt.indexOf("1183260629") !== -1 || pureSerialNo.indexOf("1183260629") !== -1) {
                             line4_val = "26 6/29 王水欽 4000";
                         } else {
                             line4_val = formattedDate + " " + name + " " + emcCount + " " + customTrackingCode;
@@ -373,7 +372,7 @@
                 var highlightStyle = item.printCount === 0 ? 'style="background:#f8d7da; color:#721c24;"' : '';
 
                 tr.innerHTML = '<td '+highlightStyle+'>' + (i+1) + '</td>' +
-                    '<td '+highlightStyle+'>' + modeText + '</td>' +
+                    '<td '+highlightStyle+'>  ' + modeText + '</td>' +
                     '<td '+highlightStyle+'><b>' + item.pureCode + '</b></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line2+'" onchange="updateItem('+i+', \'line2\', this.value)"></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line3+'" '+disabledL3+' onchange="updateItem('+i+', \'line3\', this.value)"></td>' +
