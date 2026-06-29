@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>A4 1x6 標籤自動生成器</title>
+    <style>
+        /* 網頁基礎樣式 */
+        body {
+            font-family: "新細明體", "MingLiU", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        /* 列印專用樣式 (A4 1x6 貼紙精準設定) */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .no-print {
+                display: none; /* 列印時隱藏輸入框與按鈕 */
+            }
+            .page {
+                width: 210mm;
+                height: 297mm;
+                page-break-after: always;
+                box-sizing: border-box;
+                padding-top: 10mm;   /* 上邊距 */
+                padding-left: 10mm;  /* 左邊距 */
+            }
+            /* 1x6 標籤格子 */
+            .label-cell {
+                width: 190mm;        /* 標籤寬度 (210 - 左10 - 右10) */
+                height: 45mm;        /* 單張標籤高度 */
+                margin-bottom: 1mm;  /* 貼紙與貼紙之間的間距 */
+                border: 1px dotted #ccc; /* 虛線外框，方便對齊，可自行改成 none */
+                box-sizing: border-box;
+                padding: 10px 15px;
+                font-size: 14px;
+                line-height: 1.4;
+                overflow: hidden;
+            }
+            /* 排版：左右分欄 */
+            .line-row {
+                display: block;
+                clear: both;
+                margin-bottom: 2px;
+            }
+            .left-part {
+                float: left;
+            }
+            .right-part {
+                float: right;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container no-print">
+        <h2>A4 1x6 貼紙自動帶入工具 (XP 離線版)</h2>
+        <p>請在下方貼上您的原始資料：</p>
+        <textarea id="rawData" placeholder="請在此貼上資料..."></textarea>
+        <br>
+        <button onclick="generateLabels()">生成標籤並列印</button>
+    </div>
+
+    <div id="printArea"></div>
+
+    <script>
+        function generateLabels() {
+            var rawText = document.getElementById('rawData').value;
+            var lines = rawText.split('\n');
+            
+            var labels = [];
+            var currentLabel = [];
+            
+            // 1. 自動辨識邏輯：依據「修改」來切分每格資料
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (line !== "") {
+                    currentLabel.push(lines[i]); // 保留原本的 Tab 鍵
+                }
+                
+                if (line.indexOf("修改") !== -1) {
+                    if (currentLabel.length > 0) {
+                        labels.push(currentLabel);
+                        currentLabel = [];
+                    }
+                }
+            }
+            // 補漏掉的最後一筆
+            if (currentLabel.length > 0) {
+                labels.push(currentLabel);
+            }
+            
+            // 2. 渲染成 A4 1x6 網頁結構
+            var printArea = document.getElementById('printArea');
+            printArea.innerHTML = ''; // 清空舊資料
+            
+            var html = '';
+            var labelsPerPage = 6;
+            
+            for (var j = 0; j < labels.length; j++) {
+                // 每 6 格自動開一個新的 A4 頁面
+                if (j % labelsPerPage === 0) {
+                    if (j > 0) html += '</div>'; // 關閉上一頁
+                    html += '<div class="page">';
+                }
+                
+                html += '<div class="label-cell">';
+                
+                // 處理單張貼紙內部的每一行
+                var singleLabel = labels[j];
+                for (var k = 0; k < singleLabel.length; k++) {
+                    var parts = singleLabel[k].split('\t'); // 依據 Tab 鍵切分左右
+                    
+                    html += '<div class="line-row">';
+                    if (parts.length >= 2) {
+                        html += '<span class="left-part">' + parts[0].trim() + '</span>';
+                        html += '<span class="right-part">' + parts[1].trim() + '</span>';
+                    } else {
+                        html += '<span>' + singleLabel[k].trim() + '</span>';
+                    }
+                    html += '</div>';
+                }
+                
+                html += '</div>'; // 關閉 label-cell
+            }
+            
+            if (labels.length > 0) {
+                html += '</div>'; // 關閉最後一頁
+            }
+            
+            printArea.innerHTML = html;
+            
+            // 3. 直接驅動瀏覽器列印視窗
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        }
+    </script>
+</body>
+</html>
