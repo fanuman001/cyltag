@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>進料棧板標籤多功能管理系統 (智慧欄位解析+極限字體版)</title>
+    <title>進料棧板標籤多功能管理系統 (防重邏輯優化+靠右留白版)</title>
     <style>
         body { font-family: "SimHei", "黑體", "新細明體", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
         .container { max-width: 1050px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -41,7 +41,6 @@
             .label-cell { width: 92mm; height: 90mm; float: left; margin-right: 4mm; margin-bottom: 4mm; border: 1px dotted #bbb; box-sizing: border-box; padding: 3mm; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
             .label-cell:nth-child(2n) { margin-right: 0; }
             
-            /* SVG 極限滿格放大外殼，強迫寬度 100% 撐滿 */
             .svg-line-container { width: 100%; height: 100%; display: block; overflow: hidden; }
             
             /* 模式一高度分配 (4行版面) */
@@ -55,7 +54,6 @@
             .m2-h2 { height: 30mm; } 
             .m2-h3 { height: 30mm; } 
             
-            /* 強制黑體極限粗體特效與描邊 */
             text { font-family: "SimHei", "黑體", "Arial Black", sans-serif !important; font-weight: 900 !important; }
         }
     </style>
@@ -63,23 +61,23 @@
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (2x3 網頁表格智慧解析版)</h2>
+        <h2>棧板標籤自動流轉系統 (流水號/序號精準防重優化版)</h2>
         
         <div class="tabs">
-            <div class="tab" onclick="switchTab(1)">模式一：貼上直式文字(1*6)</div>
-            <div class="tab active" onclick="switchTab(2)">模式二：貼上網頁進料表</div>
+            <div class="tab active" onclick="switchTab(1)">模式一：貼上直式文字(1*6)</div>
+            <div class="tab" onclick="switchTab(2)">模式二：貼上網頁進料表</div>
             <div class="tab" onclick="switchTab(3)">模式三：手動逐筆新增</div>
         </div>
 
-        <div id="tab1" class="tab-content">
-            <p>請貼上第一種原始文字資料（包含「修改」字樣）：</p>
-            <textarea id="textData1" placeholder="1165	260625&#10;王水欽	EM-890&#10;4mil 	1/H&#10;RTF3 	1035*2&#10; 	49.2*33.0&#10;EMC	4000&#10;4000	U2635916&#10; &#10;7-260529-070 	修改"></textarea>
+        <div id="tab1" class="tab-content active">
+            <p>請貼上第一種原始文字資料（依開頭流水編號如 1165 判斷重複）：</p>
+            <textarea id="textData1" placeholder="1165	260625&#10;王水欽	EM-890..."></textarea>
             <button onclick="parseMode1()">剖析並匯入</button>
         </div>
 
-        <div id="tab2" class="tab-content active">
-            <p>請直接將網頁整段複製（包含序號、日期、黏在一起的文字），貼在下方框內：</p>
-            <textarea id="textData2" placeholder="直接把含有 '120260629672U2618973-1...' 的進料管理表全部貼進來即可"></textarea>
+        <div id="tab2" class="tab-content">
+            <p>請直接將網頁整段複製（依開頭序號如 1, 2, 3 判斷重複，且日期自動靠右留空）：</p>
+            <textarea id="textData2" placeholder="直接把含有序號、日期黏在一起的進料管理表資料貼在這裡..."></textarea>
             <button onclick="parseMode2()">智慧剖析並匯入</button>
         </div>
 
@@ -88,14 +86,17 @@
                 <label>使用版型格式：</label>
                 <select id="manualMode" onchange="toggleManualInputs()">
                     <option value="mode1">模式一版型 (4行：留白/料號/規格/日期)</option>
-                    <option value="mode2">模式二版型 (3行：留白/編號/日期)</option>
+                    <option value="mode2">模式二版型 (3行：留白/編號/日期靠右)</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>第二行內容 (純編號/料號)：</label><input type="text" id="manualL2" placeholder="如：EM-890 或 1-Nn16-U1EA">
+                <label>比對唯一編號(流水號/序號)：</label><input type="text" id="manualPureCode" placeholder="如：1165 或 1">
+            </div>
+            <div class="form-group">
+                <label>第二行內容：</label><input type="text" id="manualL2" placeholder="如：EM-890 或 1-Nn16-U1EA">
             </div>
             <div id="manualL3Group" class="form-group">
-                <label>第三行內容 (規格/型號)：</label><input type="text" id="manualL3" placeholder="如：RTF3 4mil 1/H 1035*2">
+                <label>第三行內容 (規格)：</label><input type="text" id="manualL3" placeholder="如：RTF3 4mil 1/H 1035*2">
             </div>
             <div class="form-group">
                 <label id="manualL4Label">第四行內容 (日期人員)：</label><input type="text" id="manualL4" placeholder="如：26 6/25 王水欽 4000">
@@ -115,17 +116,17 @@
             <button class="danger" onclick="clearAllData()">清空記憶資料庫</button>
         </div>
 
-        <h3>資料庫清單 (依純編號/料號防重)</h3>
+        <h3>資料庫清單 (模式1看流水號/模式2看序號防重)</h3>
         <table class="data-list">
             <thead>
                 <tr>
                     <th width="4%">序</th>
-                    <th width="8%">版型</th>
-                    <th width="15%">主要比對編號</th>
+                    <th width="10%">版型</th>
+                    <th width="12%">比對判定編號</th>
                     <th width="23%">第二行顯示內容</th>
                     <th width="20%">第三行顯示內容</th>
-                    <th width="15%">第四行顯示內容</th>
-                    <th width="7%">首張QA</th>
+                    <th width="17%">第四行顯示內容</th>
+                    <th width="6%">首張QA</th>
                     <th width="4%">張數</th>
                     <th width="4%">管理</th>
                 </tr>
@@ -174,9 +175,10 @@
             return dStr;
         }
 
-        function checkDuplicateKey(db, pureCode) {
+        // 精準防重檢查：只比對相同模式底下的 Key
+        function checkDuplicateKey(db, mode, checkCode) {
             for(var i=0; i<db.length; i++) {
-                if(db[i].pureCode.toLowerCase() === pureCode.toLowerCase()) {
+                if(db[i].mode === mode && db[i].pureCode.toString().trim() === checkCode.toString().trim()) {
                     return i; 
                 }
             }
@@ -201,6 +203,7 @@
                             return parts.map(function(p) { return p.trim(); });
                         });
 
+                        var pureSerialNo = r[0][0] || ""; // 抓最前端的流水編號 (例如 1165, 1181)
                         var dateRaw  = r[0][1] || "";
                         var name     = r[1][0] || "";
                         var purePartNo = r[1][1] || ""; 
@@ -214,13 +217,14 @@
                         var line3_val = spec1 + " " + spec2 + " " + size;
                         var line4_val = formatDateStr(dateRaw) + " " + name + " " + emcCount;
 
-                        var dupIdx = checkDuplicateKey(db, purePartNo);
+                        // 模式一：依流水號判斷重複
+                        var dupIdx = checkDuplicateKey(db, 'mode1', pureSerialNo);
                         if(dupIdx !== -1) {
-                            if(confirm("模式一：料號【" + purePartNo + "】已存在！\n點擊「確定」累加列印張數，點擊「取消」跳過。")) {
+                            if(confirm("模式一：流水號【" + pureSerialNo + "】已存在！\n點擊「確定」累加列印張數，點擊「取消」跳過。")) {
                                 db[dupIdx].printCount += 1;
                             }
                         } else {
-                            db.push({ mode: 'mode1', pureCode: purePartNo, line2: line2_val, line3: line3_val, line4: line4_val, isQA: false, printCount: 1 });
+                            db.push({ mode: 'mode1', pureCode: pureSerialNo, line2: line2_val, line3: line3_val, line4: line4_val, isQA: false, printCount: 1 });
                         }
                     }
                     currentChunk = [];
@@ -231,7 +235,7 @@
             alert("模式一處理完成！");
         }
 
-        // 【模式二剖析：無欄位分隔智慧正則拆解】
+        // 【模式二剖析】
         function parseMode2() {
             var txt = document.getElementById('textData2').value.trim();
             if(!txt) return;
@@ -239,27 +243,28 @@
             var db = getDB();
             var importCount = 0;
 
-            // PCB原料編號正則表達式，精準比對 1-XXXX-XXXX（如 1-gT04-UEHA 或 1-Nn16-U1EA）
             var partNoRegex = /(1-[A-Za-z0-9]{4}-([A-Za-z0-9]{4}|[A-Za-z0-9]{5,6}))/;
 
             for(var i=0; i<lines.length; i++) {
                 var line = lines[i].trim();
                 if(line === "" || line.indexOf("合計") !== -1 || line.indexOf("取消") !== -1 || line.indexOf("原料編號") !== -1) continue;
 
+                // 嘗試抓出前面的數字序號
+                var seqMatch = line.match(/^(\d+)/);
+                var pureSeqNo = seqMatch ? seqMatch[1] : importCount + 1; // 如果沒抓到就用計數器代替
+
                 var match = partNoRegex.exec(line);
                 if(match) {
-                    var purePartNo = match[1]; // 成功擷取出的原料編號
+                    var purePartNo = match[1]; 
                     var partNoIdx = match.index;
 
-                    // 擷取前半段 (含有序號與日期：例如 120260629672U2618973-)
                     var frontPart = line.substring(0, partNoIdx);
-                    var dateNo = "26 6/29"; // 預設值
+                    var dateNo = "26 6/29"; 
                     var dateMatch = frontPart.match(/(20\d{6})/);
                     if(dateMatch) {
                         dateNo = formatDateStr(dateMatch[1]);
                     }
 
-                    // 擷取後半段 (含有時間、廠商、簽收人與IQC：例如 0930台燿4000徐李淼合格 或 有合格)
                     var backPart = line.substring(partNoIdx + purePartNo.length);
                     var hasIqc = (backPart.indexOf("有") !== -1);
 
@@ -267,49 +272,48 @@
                     var line3_val = ""; 
                     var line4_val = dateNo;
 
-                    var dupIdx = checkDuplicateKey(db, purePartNo);
+                    // 模式二：依序號 (1.2.3...) 判斷重複
+                    var dupIdx = checkDuplicateKey(db, 'mode2', pureSeqNo);
                     if(dupIdx !== -1) {
-                        if(confirm("模式二：編號【" + purePartNo + "】已存在！\n點擊「確定」累加列印張數，點擊「取消」跳過。")) {
+                        if(confirm("模式二：序號【" + pureSeqNo + "】已存在！\n點擊「確定」累加列印張數，點擊「取消」跳過。")) {
                             db[dupIdx].printCount += 1;
                         }
                     } else {
-                        db.push({ mode: 'mode2', pureCode: purePartNo, line2: line2_val, line3: line3_val, line4: line4_val, isQA: hasIqc, printCount: 1 });
+                        db.push({ mode: 'mode2', pureCode: pureSeqNo, line2: line2_val, line3: line3_val, line4: line4_val, isQA: hasIqc, printCount: 1 });
                     }
                     importCount++;
                 }
             }
             saveDB(db);
             document.getElementById('textData2').value = '';
-            if(importCount > 0) {
-                alert("模式二：成功智慧識別並匯入 " + importCount + " 筆進料標籤！");
-            } else {
-                alert("未能識別出符合規範的原料編號，請確認複製的資料內容。");
-            }
+            alert("模式二處理完成！");
         }
 
         // 【模式三手動新增】
         function parseMode3() {
             var m = document.getElementById('manualMode').value;
+            var pCode = document.getElementById('manualPureCode').value.trim();
             var l2 = document.getElementById('manualL2').value.trim();
             var l3 = document.getElementById('manualL3').value.trim();
             var l4 = document.getElementById('manualL4').value.trim();
             var iqc = document.getElementById('manualIqc').value === "true";
             
-            if(!l2 || !l4) { alert("請填寫必要的欄位內容！"); return; }
+            if(!pCode || !l2 || !l4) { alert("請填寫必要的判定編號與欄位內容！"); return; }
             if(m === 'mode2') { l3 = ""; } 
 
             var db = getDB();
-            var dupIdx = checkDuplicateKey(db, l2);
+            var dupIdx = checkDuplicateKey(db, m, pCode);
             if(dupIdx !== -1) {
-                if(confirm("手動模式：此編號【" + l2 + "】在資料庫中已存在！\n點擊「確定」累加列印張數，點擊「取消」另外新增一筆。")) {
+                if(confirm("手動模式：此編號【" + pCode + "】在資料庫中已存在重複項！\n點擊「確定」累加列印張數，點擊「取消」強行新增。")) {
                     db[dupIdx].printCount += 1;
                     saveDB(db);
                     return;
                 }
             }
 
-            db.push({ mode: m, pureCode: l2, line2: l2, line3: l3, line4: l4, isQA: iqc, printCount: 1 });
+            db.push({ mode: m, pureCode: pCode, line2: l2, line3: l3, line4: l4, isQA: iqc, printCount: 1 });
             saveDB(db);
+            document.getElementById('manualPureCode').value = '';
             document.getElementById('manualL2').value = '';
             document.getElementById('manualL3').value = '';
             document.getElementById('manualL4').value = '';
@@ -324,7 +328,7 @@
             for(var i=0; i<db.length; i++) {
                 var item = db[i];
                 var tr = document.createElement('tr');
-                var modeText = item.mode === 'mode1' ? '<span style="color:blue;font-weight:bold;">模式1(4行)</span>' : '<span style="color:green;font-weight:bold;">模式2(3行)</span>';
+                var modeText = item.mode === 'mode1' ? '<span style="color:blue;font-weight:bold;">模式1(流水防重)</span>' : '<span style="color:green;font-weight:bold;">模式2(序號防重)</span>';
                 var disabledL3 = item.mode === 'mode2' ? 'disabled style="background:#eee"' : '';
 
                 tr.innerHTML = '<td>' + (i+1) + '</td>' +
@@ -362,13 +366,21 @@
             if(confirm("確定要清空整個資料庫？")) { saveDB([]); }
         }
 
-        // 【極限滿格向量拉伸粗體技術】
-        function makeSvgLine(textStr) {
+        // 【智慧拉伸 SVG 產生器：增加靠左或靠右的參數控制】
+        function makeSvgLine(textStr, alignRight) {
             if(!textStr || textStr.trim() === "" || textStr === "&nbsp;") {
                 return '&nbsp;';
             }
+            var textAnchor = "middle";
+            var xPos = "50%";
+            
+            if(alignRight) {
+                textAnchor = "end"; // 靠右對齊
+                xPos = "100%";      // 貼緊最右側邊界，左側自然留空
+            }
+
             return '<svg class="svg-line-container" viewBox="0 0 100 12" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
-                   '<text x="50%" y="10" font-family="SimHei, 黑體, Arial Black" font-weight="900" font-size="10.5" fill="#000" stroke="#000" stroke-width="0.3" text-anchor="middle">' + textStr + '</text>' +
+                   '<text x="'+xPos+'" y="10" font-family="SimHei, 黑體, Arial Black" font-weight="900" font-size="10.5" fill="#000" stroke="#000" stroke-width="0.3" text-anchor="'+textAnchor+'">' + textStr + '</text>' +
                    '</svg>';
         }
 
@@ -394,18 +406,20 @@
 
                     if (item.mode === 'mode1') {
                         var l4_text = item.line4 + (isCurrentQA ? "  多QA" : "");
+                        // 模式一：全部預設居中填滿
                         html += '<div class="label-cell">' +
                                 '<div class="m1-h1"></div>' + 
-                                '<div class="m1-h2">' + makeSvgLine(item.line2) + '</div>' +
-                                '<div class="m1-h3">' + makeSvgLine(item.line3) + '</div>' +
-                                '<div class="m1-h4">' + makeSvgLine(l4_text) + '</div>' +
+                                '<div class="m1-h2">' + makeSvgLine(item.line2, false) + '</div>' +
+                                '<div class="m1-h3">' + makeSvgLine(item.line3, false) + '</div>' +
+                                '<div class="m1-h4">' + makeSvgLine(l4_text, false) + '</div>' +
                                 '</div>';
                     } else {
                         var l3_text = item.line4 + (isCurrentQA ? "  多QA" : "");
+                        // 模式二：最後一行日期人員傳入 true，使其靠右對齊，左邊留白
                         html += '<div class="label-cell">' +
                                 '<div class="m2-h1"></div>' + 
-                                '<div class="m2-h2">' + makeSvgLine(item.line2) + '</div>' +
-                                '<div class="m2-h3">' + makeSvgLine(l3_text) + '</div>' +
+                                '<div class="m2-h2">' + makeSvgLine(item.line2, false) + '</div>' +
+                                '<div class="m2-h3">' + makeSvgLine(l3_text, true) + '</div>' +
                                 '</div>';
                     }
                     cellCounter++;
