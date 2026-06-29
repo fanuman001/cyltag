@@ -79,7 +79,7 @@
 
         <div id="tab1" class="tab-content active">
             <p>請貼上第一種原始文字資料（依開頭流水編號判斷重複）：</p>
-            <textarea id="textData1" placeholder="1165	260625&#10;王水欽	EM-890..."></textarea>
+            <textarea id="textData1" placeholder="7-260429-026	1182260629&#10;劉浚銘	TU-862HF..."></textarea>
             <button onclick="parseMode1()">剖析並匯入</button>
         </div>
 
@@ -93,21 +93,21 @@
             <div class="form-group">
                 <label>使用版型格式：</label>
                 <select id="manualMode" onchange="toggleManualInputs()">
-                    <option value="mode1">模式一版型 (4行：留白/料號/規格/日期居中)</option>
-                    <option value="mode2">模式二版型 (3行：留白/編號/日期靠左)</option>
+                    <option value="mode1">模式一版型 (4行：留白/料號/規格/日期人員數量追蹤碼)</option>
+                    <option value="mode2">模式二版型 (3行：留白/編號/日期碼)</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>比對唯一編號：</label><input type="text" id="manualPureCode" placeholder="如：1165 或 原料編號">
+                <label>比對唯一編號：</label><input type="text" id="manualPureCode" placeholder="如：7-260429-026 或 原料編號">
             </div>
             <div class="form-group">
-                <label>第二行內容：</label><input type="text" id="manualL2" placeholder="如：EM-890">
+                <label>第二行內容 (空白分隔)：</label><input type="text" id="manualL2" placeholder="如：EM-896K2 HVLP4">
             </div>
             <div id="manualL3Group" class="form-group">
-                <label>第三行內容 (規格)：</label><input type="text" id="manualL3" placeholder="如：RTF3 4mil 1/H 1035*2">
+                <label>第三行內容 (空白分隔)：</label><input type="text" id="manualL3" placeholder="如：4.5mil H/H 1035*2">
             </div>
             <div class="form-group">
-                <label id="manualL4Label">第四行內容 (日期人員)：</label><input type="text" id="manualL4" placeholder="如：26 6/25 王水欽 4000">
+                <label id="manualL4Label">第四行內容 (空白分隔)：</label><input type="text" id="manualL4" placeholder="如：26 6/26 廖品勳 60 7-260426-060">
             </div>
             <div class="form-group">
                 <label>是否IQC/QA：</label>
@@ -161,10 +161,10 @@
             var m = document.getElementById('manualMode').value;
             if(m === 'mode1') {
                 document.getElementById('manualL3Group').style.display = 'block';
-                document.getElementById('manualL4Label').innerText = "第四行內容 (日期人員)：";
+                document.getElementById('manualL4Label').innerText = "第四行內容 (空白分隔)：";
             } else {
                 document.getElementById('manualL3Group').style.display = 'none';
-                document.getElementById('manualL4Label').innerText = "第三行內容 (日期人員)：";
+                document.getElementById('manualL4Label').innerText = "第三行內容 (空白分隔)：";
             }
         }
 
@@ -203,36 +203,62 @@
 
             for(var i=0; i<lines.length; i++) {
                 if(lines[i].trim() !== "") currentChunk.push(lines[i]);
-                if(lines[i].indexOf("修改") !== -1) {
-                    if(currentChunk.length >= 6) {
+                if(lines[i].indexOf("修改") !== -1 || i === lines.length - 1) {
+                    if(currentChunk.length >= 5) {
                         var r = currentChunk.map(function(l) {
                             var parts = l.split('\t');
                             if(parts.length < 2) parts = l.split(/\s+/); 
                             return parts.map(function(p) { return p.trim(); });
                         });
 
-                        var pureSerialNo = r[0][0] || ""; 
-                        var dateRaw  = r[0][1] || "";
-                        var name     = r[1][0] || "";
-                        var purePartNo = r[1][1] || ""; 
-                        var spec1    = r[2][0] || "";
-                        var spec2    = r[2][1] || "";
-                        var typeNo   = r[3][0] || "";
-                        var size     = r[3][1] || "";
-                        var emcCount = r[5][1] || "";
+                        var customTrackingCode = r[0][0] || ""; 
+                        var pureSerialNo = r[0][1] || "";       
+                        
+                        if(pureSerialNo.indexOf("修改") !== -1) {
+                            pureSerialNo = pureSerialNo.replace("修改", "").trim();
+                        }
+                        if(!pureSerialNo && customTrackingCode.indexOf("修改") !== -1) {
+                            var fixParts = currentChunk[0].split("修改");
+                            if(fixParts.length > 1) pureSerialNo = fixParts[1].trim();
+                        }
 
+                        var name         = r[1][0] || "";
+                        var purePartNo   = r[1][1] || ""; 
+                        var spec1        = r[2][0] || ""; 
+                        var spec2        = r[2][1] || ""; 
+                        var typeNo       = r[3][0] || ""; 
+                        var size         = r[3][1] || ""; 
+                        
+                        var emcCount = "";
+                        for(var k=4; k<r.length; k++) {
+                            if(r[k][0] && r[k][0].indexOf('U') !== -1) {
+                                var matchU = r[k][0].match(/^(\d+)U/);
+                                if(matchU) { emcCount = matchU[1]; break; }
+                            }
+                        }
+
+                        // 欄位改以「單一空白」串接，供後續 doPrint 依涵意精準解析
                         var line2_val = purePartNo + " " + typeNo; 
                         var line3_val = spec1 + " " + spec2 + " " + size;
-                        var line4_val = formatDateStr(dateRaw) + " " + name + " " + emcCount;
+                        
+                        var datePart = "";
+                        if(pureSerialNo.length >= 6) {
+                            datePart = pureSerialNo.substring(pureSerialNo.length - 6);
+                        }
+                        var formattedDate = datePart ? formatDateStr(datePart) : "26 6/29";
 
-                        var dupIdx = checkDuplicateKey(db, 'mode1', pureSerialNo);
+                        // 第四行串接結構：26 6/26 廖品勳 60 7-260426-060
+                        var line4_val = formattedDate + " " + name + " " + emcCount + " " + customTrackingCode;
+
+                        var uniqueKey = customTrackingCode ? customTrackingCode : pureSerialNo;
+                        var dupIdx = checkDuplicateKey(db, 'mode1', uniqueKey);
                         if(dupIdx !== -1) {
-                            db[dupIdx].printCount = 0; // 早上舊單自動歸 0 
+                            db[dupIdx].printCount = 0; 
                             if(showAlert) {
-                                alert("模式一：流水號【" + pureSerialNo + "】屬於早前重複資料，已將舊單列印張數自動重設為 0。");
+                                alert("模式一：流水號【" + uniqueKey + "】重複，已自動將舊單歸 0。");
                             }
                         } else {
-                            db.push({ mode: 'mode1', pureCode: pureSerialNo, line2: line2_val, line3: line3_val, line4: line4_val, isQA: false, printCount: 1 });
+                            db.push({ mode: 'mode1', pureCode: uniqueKey, line2: line2_val, line3: line3_val, line4: line4_val, isQA: false, printCount: 1 });
                         }
                     }
                     currentChunk = [];
@@ -240,7 +266,7 @@
             }
             saveDB(db);
             document.getElementById('textData1').value = '';
-            alert("模式一處理完成！");
+            alert("模式一資料解析完成！");
         }
 
         // 【模式二剖析】
@@ -284,7 +310,7 @@
 
                     var line2_val = purePartNo;
                     var line3_val = ""; 
-                    var line4_val = dateNo;
+                    var line4_val = dateNo; // 格式如 "26 6/29"
 
                     var uniqueKey = purePartNo + " (#" + pureSeqNo + ")";
 
@@ -292,7 +318,7 @@
                     if(dupIdx !== -1) {
                         db[dupIdx].printCount = 0;
                         if(showAlert) {
-                            alert("模式二：項目【" + purePartNo + "】偵測到早上下午重疊，已自動將舊資料列印張數歸零。");
+                            alert("模式二：項目【" + purePartNo + "】重複，舊資料已歸零。");
                         }
                     } else {
                         db.push({ mode: 'mode2', pureCode: uniqueKey, line2: line2_val, line3: line3_val, line4: line4_val, isQA: hasIqc, printCount: 1 });
@@ -303,9 +329,7 @@
             saveDB(db);
             document.getElementById('textData2').value = '';
             if(importCount > 0) {
-                alert("模式二智慧過濾處理完成！新單已自動補進，舊單列印張數已歸 0。");
-            } else {
-                alert("未偵測到符合工廠規格原料編號的資料。");
+                alert("模式二智慧處理完成！");
             }
         }
 
@@ -322,17 +346,10 @@
 
             var db = getDB();
             var dupIdx = checkDuplicateKey(db, m, pCode);
-            if(dupIdx !== -1) {
-                db[dupIdx].printCount = 0;
-                alert("判定編號已存在，已將原本標籤的列印張數設為 0。");
-            }
+            if(dupIdx !== -1) { db[dupIdx].printCount = 0; }
 
             db.push({ mode: m, pureCode: pCode, line2: l2, line3: l3, line4: l4, isQA: iqc, printCount: 1 });
             saveDB(db);
-            document.getElementById('manualPureCode').value = '';
-            document.getElementById('manualL2').value = '';
-            document.getElementById('manualL3').value = '';
-            document.getElementById('manualL4').value = '';
             alert("手動新增成功！");
         }
 
@@ -349,7 +366,7 @@
                 var highlightStyle = item.printCount === 0 ? 'style="background:#f8d7da; color:#721c24;"' : '';
 
                 tr.innerHTML = '<td '+highlightStyle+'>' + (i+1) + '</td>' +
-                    '<td '+highlightStyle+'> = modeText + '</td>' +
+                    '<td '+highlightStyle+'>' + modeText + '</td>' +
                     '<td '+highlightStyle+'><b>' + item.pureCode + '</b></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line2+'" onchange="updateItem('+i+', \'line2\', this.value)"></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line3+'" '+disabledL3+' onchange="updateItem('+i+', \'line3\', this.value)"></td>' +
@@ -380,38 +397,98 @@
             }
         }
 
-        function clearAllData() {
-            if(confirm("確定要清空整個資料庫？")) { saveDB([]); }
-        }
+        function clearAllData() { if(confirm("確定要清空整個資料庫？")) { saveDB([]); } }
 
-        // 【過長字體智慧審核降級機制 + 粗細體分流 SVG 渲染核心】
-        function makeSvgLine(textStr, alignMode, fontWeightMode) {
-            if(!textStr || textStr.trim() === "" || textStr === "&nbsp;") {
-                return '&nbsp;';
-            }
-            var textAnchor = "middle";
-            var xPos = "50%";
-            
-            if(alignMode === "left") {
-                textAnchor = "start";
-                xPos = "0%";
-            } else if(alignMode === "right") {
-                textAnchor = "end";
-                xPos = "100%";
-            }
-
-            // 依據傳入參數設定粗體字或正常體字
-            var weightAttr = (fontWeightMode === "bold") ? 'font-weight="900" stroke-width="0.35" fill="#000" stroke="#000"' : 'font-weight="normal" stroke-width="0" fill="#000"';
-
-            // 審核字體長度機制：字數如果多於 11 個字，切換為 meet 防止溢出格線
+        /* ==================== 核心：涵意精準分流 SVG 渲染引擎 ==================== */
+        function makeSemanticSvg(item, rowNum, alignMode, extraQA) {
+            var textAnchor = (alignMode === "left") ? "start" : "middle";
+            var xPos = (alignMode === "left") ? "0%" : "50%";
             var aspectRatio = "none";
-            if (textStr.length > 11) {
-                aspectRatio = "xMidYMid meet"; 
-                if(alignMode === "left") aspectRatio = "xMinYMid meet";
+            
+            // 建立細緻的字串區塊陣列 [{ text: '內容', isBold: true/false }]
+            var segments = [];
+
+            if (item.mode === 'mode1') {
+                if (rowNum === 2) {
+                    // 第二行涵意：[料號](粗體) + [型號](正常)
+                    var tokens = item.line2.split(/\s+/);
+                    if(tokens.length >= 2) {
+                        segments.push({ text: tokens[0] + " ", isBold: true });
+                        segments.push({ text: tokens.slice(1).join(" "), isBold: false });
+                    } else {
+                        segments.push({ text: item.line2, isBold: true });
+                    }
+                } 
+                else if (rowNum === 3) {
+                    // 第三行涵意：[厚度/銅箔](粗體) + [規格尺寸](正常)
+                    var tokens = item.line3.split(/\s+/);
+                    if(tokens.length >= 2) {
+                        segments.push({ text: tokens[0] + " " + (tokens[1]||"") + " ", isBold: true });
+                        segments.push({ text: tokens.slice(2).join(" "), isBold: false });
+                    } else {
+                        segments.push({ text: item.line3, isBold: true });
+                    }
+                } 
+                else if (rowNum === 4) {
+                    // 第四行涵意：[26](正常) + [6/26](粗體) + [人員](正常) + [數量](正常) + [追蹤碼](正常)
+                    var tokens = item.line4.split(/\s+/); // 預期: ["26", "6/26", "廖品勳", "60", "7-260426-060"]
+                    if(tokens.length >= 4) {
+                        segments.push({ text: tokens[0] + " ", isBold: false });
+                        segments.push({ text: tokens[1] + " ", isBold: true });
+                        segments.push({ text: tokens[2] + " " + tokens[3] + " ", isBold: false });
+                        // 剩餘部分(如追蹤碼與QA)
+                        var remain = tokens.slice(4).join(" ");
+                        if(remain) segments.push({ text: remain + " ", isBold: false });
+                    } else {
+                        segments.push({ text: item.line4 + " ", isBold: false });
+                    }
+                }
+            } 
+            else if (item.mode === 'mode2') {
+                if (rowNum === 2) {
+                    // 模式二第二行：[1-Nn16-U1EA](粗體)
+                    segments.push({ text: item.line2, isBold: true });
+                } 
+                else if (rowNum === 3) {
+                    // 模式二第三行：[26](正常) + [6/29](粗體)
+                    var tokens = item.line4.split(/\s+/); // 預期: ["26", "6/29"]
+                    if(tokens.length >= 2) {
+                        segments.push({ text: tokens[0] + " ", isBold: false });
+                        segments.push({ text: tokens[1] + " ", isBold: true });
+                        var remain = tokens.slice(2).join(" ");
+                        if(remain) segments.push({ text: " " + remain, isBold: false });
+                    } else {
+                        segments.push({ text: item.line4, isBold: false });
+                    }
+                }
             }
+
+            // 處理額外附加的 QA 字樣 (一律維持極粗體特徵)
+            if(extraQA) {
+                segments.push({ text: extraQA, isBold: true });
+            }
+
+            // 計算完整字串長度，防溢出機制
+            var fullTextLen = segments.map(function(s){ return s.text; }).join("").length;
+            if (fullTextLen > 11) {
+                aspectRatio = (alignMode === "left") ? "xMinYMid meet" : "xMidYMid meet";
+            }
+
+            // 組裝內嵌多重屬性的 tspan
+            var tspanHtml = '';
+            segments.forEach(function(seg) {
+                if(!seg.text) return;
+                if(seg.isBold) {
+                    tspanHtml += '<tspan font-weight="900" stroke-width="0.38" stroke="#000" fill="#000">' + seg.text + '</tspan>';
+                } else {
+                    tspanHtml += '<tspan font-weight="normal" stroke-width="0" fill="#000">' + seg.text + '</tspan>';
+                }
+            });
+
+            if(tspanHtml === '') return '&nbsp;';
 
             return '<svg class="svg-line-container" viewBox="0 0 100 12" preserveAspectRatio="' + aspectRatio + '" xmlns="http://www.w3.org/2000/svg">' +
-                   '<text x="'+xPos+'" y="10" font-family="SimHei, 黑體, Arial" font-size="11" ' + weightAttr + ' text-anchor="'+textAnchor+'">' + textStr + '</text>' +
+                   '<text x="'+xPos+'" y="10" font-family="SimHei, 黑體, Arial" font-size="11" text-anchor="'+textAnchor+'">' + tspanHtml + '</text>' +
                    '</svg>';
         }
 
@@ -419,14 +496,13 @@
             var db = getDB();
             var printArea = document.getElementById('printArea');
             printArea.innerHTML = '';
-            
             var html = '';
             var cellCounter = 0;
             var labelsPerPage = 6;
 
             for(var i=0; i<db.length; i++) {
                 var item = db[i];
-                if(item.printCount <= 0) continue; // 張數為 0 的歷史項目直接不印
+                if(item.printCount <= 0) continue; 
                 
                 for(var c=0; c<item.printCount; c++) {
                     if(cellCounter % labelsPerPage === 0) {
@@ -435,27 +511,20 @@
                     }
 
                     var isCurrentQA = (item.isQA && c === 0);
+                    var qaSuffix = isCurrentQA ? "  QA" : "";
 
                     if (item.mode === 'mode1') {
-                        // 模式一粗細字流分流控制
-                        var qaSuffix = isCurrentQA ? "  QA" : "";
-                        var l4_text = item.line4 + qaSuffix;
-
                         html += '<div class="label-cell">' +
                                 '<div class="m1-h1"></div>' + 
-                                '<div class="m1-h2">' + makeSvgLine(item.line2, "center", "bold") + '</div>' + // 第二行 (EM-896K2) 粗體
-                                '<div class="m1-h3">' + makeSvgLine(item.line3, "center", "normal") + '</div>' + // 第三行 (4.5mil 1/H...) 正常體
-                                '<div class="m1-h4">' + makeSvgLine(l4_text, "center", "bold") + '</div>' + // 第四行 (26正常 6/26...) 粗體
+                                '<div class="m1-h2">' + makeSemanticSvg(item, 2, "center", "") + '</div>' + 
+                                '<div class="m1-h3">' + makeSemanticSvg(item, 3, "center", "") + '</div>' + 
+                                '<div class="m1-h4">' + makeSemanticSvg(item, 4, "center", qaSuffix) + '</div>' + 
                                 '</div>';
                     } else {
-                        // 模式二粗細字流分流控制
-                        var qaSuffix = isCurrentQA ? "  QA" : "";
-                        var l3_text = item.line4 + qaSuffix;
-
                         html += '<div class="label-cell">' +
                                 '<div class="m2-h1"></div>' + 
-                                '<div class="m2-h2">' + makeSvgLine(item.line2, "center", "bold") + '</div>' + // 第二行 原料編號 粗體
-                                '<div class="m2-h3">' + makeSvgLine(l3_text, "left", "normal") + '</div>' + // 第三行 日期+QA 靠左正常體
+                                '<div class="m2-h2">' + makeSemanticSvg(item, 2, "center", "") + '</div>' + 
+                                '<div class="m2-h3">' + makeSemanticSvg(item, 3, "left", qaSuffix) + '</div>' + 
                                 '</div>';
                     }
                     cellCounter++;
@@ -464,7 +533,7 @@
             if(cellCounter > 0) html += '</div>';
             printArea.innerHTML = html;
 
-            if(cellCounter === 0) { alert("當前沒有任何有效列印張數大於 0 的標籤。"); return; }
+            if(cellCounter === 0) { alert("當前沒有任何有效列印張數。"); return; }
             window.print();
         }
     </script>
