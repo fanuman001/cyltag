@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>進料棧板標籤多功能管理系統 (極致寬幅手寫空間版)</title>
+    <title>進料棧板標籤管理系統 (權重分級與反白微型碼版)</title>
     <style>
         body { font-family: "SimHei", "黑體", "新細明體", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
         .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -35,7 +35,7 @@
 
         #printArea { display: none; }
 
-        /* ==================== 【A4 2x3 極致寬幅座標微調區】 ==================== */
+        /* ==================== 【A4 2x3 權重與留白重構區】 ==================== */
         @media print {
             @page { size: A4 portrait; margin: 0 !important; }
             html, body { background: white; margin: 0 !important; padding: 0 !important; width: 210mm; height: 297mm; }
@@ -52,53 +52,51 @@
                 background: transparent;
             }
             
-            /* 解放左右 Padding（從 5mm 縮減到 1mm），防止文字左右被切，直接滿版延伸 */
             .label-cell { 
                 position: absolute; 
                 width: 100mm; 
                 height: 95mm; 
                 box-sizing: border-box; 
-                padding: 4mm 1mm 0mm 1mm; 
+                padding: 0mm 1mm 0mm 1mm; /* 左右保留極窄 1mm 防止字體被切 */
                 overflow: hidden; 
                 display: flex; 
                 flex-direction: column; 
-                justify-content: flex-start; /* 改用由上往下推，以便精準控制留白 */
+                justify-content: flex-start;
                 background: transparent;
             }
             
-            /* 橫向與縱向精準格位 */
+            /* 六格絕對座標 (與 A4 2x3 完美契合) */
             .pos-0 { top: 0mm; left: 4mm; }
             .pos-1 { top: 0mm; left: 104mm; }
-            
             .pos-2 { top: 95mm; left: 4mm; }
             .pos-3 { top: 95mm; left: 104mm; }
-            
             .pos-4 { top: 190mm; left: 4mm; }
             .pos-5 { top: 190mm; left: 104mm; }
 
-            .svg-line-container { width: 100%; height: 100%; display: block; overflow: hidden; }
+            .svg-wrapper { width: 100%; display: block; overflow: hidden; position: relative; }
             
-            /* ==================== 完美吐出 3 公分、擴大手寫區的高度分配 ==================== */
-            /* 第一行留白 */
-            .m1-h1 { height: 6mm; } 
-            /* 第二行：料號種類 (稍微緊湊) */
-            .m1-h2 { height: 18mm; } 
-            /* 第三行：厚度規格 (稍微緊湊) */
+            /* 1. 第一行強制留白 2.5 公分 (25mm) */
+            .m1-h1 { height: 25mm; } 
+            
+            /* 2. 由上到下權重配置 */
+            /* 第二行 (最重要：料號) -> 給予最大高度空間與字體比例 */
+            .m1-h2 { height: 22mm; } 
+            /* 第三行 (次要：規格) -> 次大 */
             .m1-h3 { height: 18mm; } 
-            /* 第四行：直接放大到 38mm！把這3公分往下逼，產生絕佳的中間與底部手寫留白空間 */
-            .m1-h4 { height: 38mm; display: flex; flex-direction: column; justify-content: flex-end; } 
+            /* 第四行 (底部資訊與手寫留白) -> 高度收尾 */
+            .m1-h4 { height: 25mm; display: flex; flex-direction: column; justify-content: flex-end; } 
 
-            /* 常備基板版型高度同步優化 */
-            .m2-h1 { height: 15mm; } 
+            /* 常備基板同步對應 */
+            .m2-h1 { height: 25mm; } 
             .m2-h2 { height: 25mm; } 
-            .m2-h3 { height: 45mm; display: flex; flex-direction: column; justify-content: flex-end; } 
+            .m2-h3 { height: 40mm; display: flex; flex-direction: column; justify-content: flex-end; } 
         }
     </style>
 </head>
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (極致寬幅手寫空間版)</h2>
+        <h2>棧板標籤自動流轉系統 (權重分級與反白微型碼版)</h2>
         
         <div class="config-panel">
             <label style="cursor: pointer;">
@@ -113,7 +111,7 @@
         </div>
 
         <div id="tab1" class="tab-content active">
-            <p>請直接將非常備資料整段複製貼上（寬幅優化版，左右字體不再被切）：</p>
+            <p>請直接將非常備資料整段複製貼上（已設定頂部 2.5cm 留白，且微型碼碰字自動反白）：</p>
             <textarea id="textData1" placeholder="貼上包含 1174 260626... 的原始資料"></textarea>
             <button onclick="parseMode1()">精準剖析並匯入</button>
         </div>
@@ -213,8 +211,8 @@
             }
         }
 
-        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_wide')) || []; }
-        function saveDB(data) { localStorage.setItem('palletSysDB2026_wide', JSON.stringify(data)); renderTable(); }
+        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_hierarchical')) || []; }
+        function saveDB(data) { localStorage.setItem('palletSysDB2026_hierarchical', JSON.stringify(data)); renderTable(); }
 
         function formatDateStr(dStr) {
             dStr = dStr.trim();
@@ -375,7 +373,7 @@
 
             saveDB(db);
             document.getElementById('textData1').value = '';
-            alert("已完成Tab分欄智慧切割！成功匯入 " + successCount + " 筆非常備資料。");
+            alert("已完成Tab分欄切割！成功匯入 " + successCount + " 筆非常備資料。");
         }
 
         function parseMode2() {
@@ -485,7 +483,7 @@
         function updateItem(idx, field, value) {
             var db = getDB();
             db[idx][field] = value;
-            localStorage.setItem('palletSysDB2026_wide', JSON.stringify(db));
+            localStorage.setItem('palletSysDB2026_hierarchical', JSON.stringify(db));
             if(field === 'printCount') { renderTable(); }
         }
 
@@ -499,69 +497,98 @@
 
         function clearAllData() { if(confirm("確定要清空整個資料庫？")) { saveDB([]); } }
 
+        // ==================== 【權重分級 SVG 生成核心】 ====================
         function makeSemanticSvg(item, rowNum, alignMode, extraQA) {
             var textAnchor = (alignMode === "left") ? "start" : "middle";
             var xPos = (alignMode === "left") ? "0%" : "50%";
-            var aspectRatio = "none";
             var colorHex = item.isQtyErr ? "#FF0000" : "#000000";
             
             var segments = [];
+            var viewBoxHeight = 12; // 預設標準行視窗高度
+            var fontSizeValue = 11;  // 預設字體大小
 
             if (item.mode === 'mode1') {
                 if (rowNum === 2) {
-                    segments.push({ text: item.line2, isBold: true, color: "#000" });
+                    // 【最重要：料號】-> 將 SVG 縱向比例放大，並將字體撐大至 13，展現最高權重
+                    viewBoxHeight = 14;
+                    fontSizeValue = 13;
+                    segments.push({ text: item.line2, isBold: true, color: "#000", isName: false });
                 } 
                 else if (rowNum === 3) {
-                    segments.push({ text: item.line3, isBold: true, color: "#000" });
+                    // 【次要：規格】-> 維持中大型權重，字體 11
+                    viewBoxHeight = 12;
+                    fontSizeValue = 11;
+                    segments.push({ text: item.line3, isBold: true, color: "#000", isName: false });
                 } 
                 else if (rowNum === 4) {
+                    // 【底部資訊：日期、人名、數量】-> 進行精準權重拆解
+                    viewBoxHeight = 12;
+                    fontSizeValue = 11;
                     var tokens = item.line4.split(/\s+/); 
                     if(tokens.length >= 3) {
-                        segments.push({ text: tokens[0] + " " + tokens[1] + "  ", isBold: true, color: "#000" });
-                        segments.push({ text: tokens[2] + " ", isBold: false, color: "#000" });
+                        // 日期保持粗體放大
+                        segments.push({ text: tokens[0] + " " + tokens[1] + "  ", isBold: true, color: "#000", isName: false });
+                        // 人名最不重要：【不加粗、強制使用小字 TSPAN】
+                        segments.push({ text: tokens[2] + " ", isBold: false, color: "#444", isName: true });
+                        // 數量保持粗體（若異常則變紅）
                         var remainTokens = tokens.slice(3).join(" ");
-                        if(remainTokens) { segments.push({ text: " " + remainTokens, isBold: true, color: colorHex }); }
+                        if(remainTokens) { 
+                            segments.push({ text: " " + remainTokens, isBold: true, color: colorHex, isName: false }); 
+                        }
                     } else {
-                        segments.push({ text: item.line4, isBold: true, color: "#000" });
+                        segments.push({ text: item.line4, isBold: true, color: "#000", isName: false });
                     }
                 }
             } 
             else if (item.mode === 'mode2') {
                 if (rowNum === 2) {
-                    segments.push({ text: item.line2, isBold: true, color: "#000" });
+                    viewBoxHeight = 14;
+                    fontSizeValue = 13;
+                    segments.push({ text: item.line2, isBold: true, color: "#000", isName: false });
                 } 
                 else if (rowNum === 3) {
+                    viewBoxHeight = 12;
+                    fontSizeValue = 11;
                     var tokens = item.line4.split(/\s+/); 
                     if(tokens.length >= 2) {
-                        segments.push({ text: tokens[0] + " " + tokens[1], isBold: true, color: "#000" });
+                        segments.push({ text: tokens[0] + " " + tokens[1], isBold: true, color: "#000", isName: false });
                         var remain = tokens.slice(2).join(" ");
-                        if(remain) segments.push({ text: " " + remain, isBold: false, color: "#000" });
+                        if(remain) segments.push({ text: " " + remain, isBold: false, color: "#444", isName: true });
                     } else {
-                        segments.push({ text: item.line4, isBold: true, color: "#000" });
+                        segments.push({ text: item.line4, isBold: true, color: "#000", isName: false });
                     }
                 }
             }
 
-            if(extraQA) { segments.push({ text: extraQA, isBold: true, color: "#000" }); }
+            if(extraQA) { segments.push({ text: extraQA, isBold: true, color: "#000", isName: false }); }
 
             var tspanHtml = '';
             segments.forEach(function(seg) {
                 if(!seg.text) return;
-                var strokeAttr = (seg.isBold) ? ' stroke-width="0.45" stroke="'+seg.color+'"' : ' stroke-width="0"';
+                var strokeAttr = (seg.isBold) ? ' stroke-width="0.5" stroke="'+seg.color+'"' : ' stroke-width="0"';
                 var weightAttr = (seg.isBold) ? ' font-weight="900"' : ' font-weight="normal"';
-                tspanHtml += '<tspan' + weightAttr + strokeAttr + ' fill="' + seg.color + '">' + seg.text + '</tspan>';
+                // 如果是人名，利用 dy 或 small 特效使其視覺權重顯著下降
+                if(seg.isName) {
+                    tspanHtml += '<tspan font-weight="normal" stroke-width="0" fill="' + seg.color + '" font-size="7.5">' + seg.text + '</tspan>';
+                } else {
+                    tspanHtml += '<tspan' + weightAttr + strokeAttr + ' fill="' + seg.color + '">' + seg.text + '</tspan>';
+                }
             });
 
+            // ==================== 【微型碼重疊智慧反白科技】 ====================
+            // 透過 CSS mix-blend-mode: difference，微型碼塗上白色(#FFF)。
+            // 在白色背景上它會顯示黑色，但當它與下方黑色的巨大字體重疊時，會立刻「反白」顯示，保證不互吃字！
             var subTrackHtml = '';
             if(item.mode === 'mode1' && rowNum === 4 && item.subTrack) {
-                // 將微型小字 y 座標控制在合理中下區段，並精緻化尺寸
-                subTrackHtml = '<text x="44%" y="3.5" font-family="Arial" font-size="2.6" font-weight="normal" text-anchor="start" fill="#555">' + item.subTrack + '</text>';
+                subTrackHtml = '<text x="44%" y="4.5" font-family="Arial" font-size="2.8" font-weight="bold" text-anchor="start" fill="#FFF" style="mix-blend-mode: difference; letter-spacing: 0.1px;">' + item.subTrack + '</text>';
             }
 
-            /* 修正為實體拉伸長寬比，徹底消除左右被裁切的死穴 */
-            return '<svg class="svg-line-container" viewBox="0 0 100 12" preserveAspectRatio="' + aspectRatio + '" xmlns="http://www.w3.org/2000/svg">' +
+            var yPos = viewBoxHeight - 2; // 動態計算底線對齊基位
+            return '<svg class="svg-line-container" viewBox="0 0 100 ' + viewBoxHeight + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+                   '<g>' +
+                   '<text x="'+xPos+'" y="' + yPos + '" font-family="SimHei, 黑體, Arial" font-size="' + fontSizeValue + '" text-anchor="' + textAnchor + '">' + tspanHtml + '</text>' +
+                   '</g>' +
                    subTrackHtml +
-                   '<text x="'+xPos+'" y="10" font-family="SimHei, 黑體, Arial" font-size="11" text-anchor="' + textAnchor + '">' + tspanHtml + '</text>' +
                    '</svg>';
         }
 
@@ -589,16 +616,16 @@
 
                     if (item.mode === 'mode1') {
                         html += '<div class="label-cell pos-' + posIndex + '">' +
-                                '<div class="m1-h1"></div>' + 
-                                '<div class="m1-h2">' + makeSemanticSvg(item, 2, "center", "") + '</div>' + 
-                                '<div class="m1-h3">' + makeSemanticSvg(item, 3, "center", "") + '</div>' + 
-                                '<div class="m1-h4">' + makeSemanticSvg(item, 4, "center", qaSuffix) + '</div>' + 
+                                '<div class="svg-wrapper m1-h1"></div>' + // 2.5公分純留白區
+                                '<div class="svg-wrapper m1-h2">' + makeSemanticSvg(item, 2, "center", "") + '</div>' + 
+                                '<div class="svg-wrapper m1-h3">' + makeSemanticSvg(item, 3, "center", "") + '</div>' + 
+                                '<div class="svg-wrapper m1-h4">' + makeSemanticSvg(item, 4, "center", qaSuffix) + '</div>' + 
                                 '</div>';
                     } else {
                         html += '<div class="label-cell pos-' + posIndex + '">' +
-                                '<div class="m2-h1"></div>' + 
-                                '<div class="m2-h2">' + makeSemanticSvg(item, 2, "center", "") + '</div>' + 
-                                '<div class="m2-h3">' + makeSemanticSvg(item, 3, "left", qaSuffix) + '</div>' + 
+                                '<div class="svg-wrapper m2-h1"></div>' + // 2.5公分純留白區
+                                '<div class="svg-wrapper m2-h2">' + makeSemanticSvg(item, 2, "center", "") + '</div>' + 
+                                '<div class="svg-wrapper m2-h3">' + makeSemanticSvg(item, 3, "left", qaSuffix) + '</div>' + 
                                 '</div>';
                     }
                     cellCounter++;
@@ -613,3 +640,4 @@
     </script>
 </body>
 </html>
+
