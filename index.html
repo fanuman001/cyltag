@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>進料棧板標籤管理系統 (動態日期精準修正版)</title>
+    <title>進料棧板標籤管理系統 (全序號動態相容版)</title>
     <style>
         body { font-family: "SimHei", "黑體", "新細明體", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
         .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -57,7 +57,7 @@
                 width: 100mm; 
                 height: 95mm; 
                 box-sizing: border-box; 
-                padding: 0mm 1mm 0mm 1mm; /* 左右維持 1mm 防止字體被上下左右切掉 */
+                padding: 0mm 1mm 0mm 1mm; 
                 overflow: hidden; 
                 display: flex; 
                 flex-direction: column; 
@@ -65,7 +65,6 @@
                 background: transparent;
             }
             
-            /* 六格 A4 精準座標位置 */
             .pos-0 { top: 0mm; left: 4mm; }
             .pos-1 { top: 0mm; left: 104mm; }
             .pos-2 { top: 95mm; left: 4mm; }
@@ -75,13 +74,11 @@
 
             .svg-wrapper { width: 100%; display: block; overflow: hidden; position: relative; }
             
-            /* 📌 第一行固定留白 5 公分 (50mm) */
             .m1-h1 { height: 50mm; } 
-            .m1-h2 { height: 16mm; } /* 第二行：料號 */
-            .m1-h3 { height: 12mm; } /* 第三行：規格 */
+            .m1-h2 { height: 16mm; } 
+            .m1-h3 { height: 12mm; } 
             .m1-h4 { height: 17mm; display: flex; flex-direction: column; justify-content: flex-end; } 
 
-            /* 常備基板對應 5 公分留白 */
             .m2-h1 { height: 50mm; } 
             .m2-h2 { height: 18mm; } 
             .m2-h3 { height: 27mm; display: flex; flex-direction: column; justify-content: flex-end; } 
@@ -91,7 +88,7 @@
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (動態日期精準修正版)</h2>
+        <h2>棧板標籤自動流轉系統 (全序號動態相容版)</h2>
         
         <div class="config-panel">
             <label style="cursor: pointer;">
@@ -106,13 +103,13 @@
         </div>
 
         <div id="tab1" class="tab-content active">
-            <p>請直接將非常備資料整段複製貼上（已鎖定頂部 5cm 留白，權重由上到下遞減）：</p>
-            <textarea id="textData1" placeholder="貼上包含 1174 260626... 的原始資料"></textarea>
+            <p>請直接將非常備資料整段複製貼上（已鎖定頂部 5cm 留白，已支援 1~4 位數任意長度序號）：</p>
+            <textarea id="textData1" placeholder="貼上原始資料（例如：624250808 或 25250808 等任意組合）"></textarea>
             <button onclick="parseMode1()">精準剖析並匯入</button>
         </div>
 
         <div id="tab2" class="tab-content">
-            <p>請直接將網頁整段複製（系統將動態解析實際進貨日期，不再強制鎖死）：</p>
+            <p>請直接將網頁整段複製（系統將動態解析實際進貨日期）：</p>
             <textarea id="textData2" placeholder="直接把網頁複製的進料管理表資料整段貼在這裡..."></textarea>
             <button onclick="parseMode2()">智慧剖析並匯入</button>
         </div>
@@ -206,10 +203,9 @@
             }
         }
 
-        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_exactDate')) || []; }
-        function saveDB(data) { localStorage.setItem('palletSysDB2026_exactDate', JSON.stringify(data)); renderTable(); }
+        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_v4')) || []; }
+        function saveDB(data) { localStorage.setItem('palletSysDB2026_v4', JSON.stringify(data)); renderTable(); }
 
-        // 日期轉換核心邏輯 (例如 20260625 -> 26 6/25)
         function formatDateStr(dStr) {
             dStr = dStr.trim();
             if(dStr.length === 8) dStr = dStr.substring(2);
@@ -247,14 +243,14 @@
                 var linesRaw = currentBlock.split('\n');
                 var cellMatrix = [];
                 for(var i=0; i<linesRaw.length; i++) {
-                    var cells = linesRaw[i].split(/[\t]/).map(function(c){ return c.trim(); }).filter(function(c){ return c!==""; });
+                    var cells = linesRaw[i].split(/[\t\s]+/).map(function(c){ return c.trim(); }).filter(function(c){ return c!==""; });
                     if(cells.length > 0) { cellMatrix.push(cells); }
                 }
 
                 var allTokens = [];
                 cellMatrix.forEach(function(row) { allTokens = allTokens.concat(row); });
 
-                if(allTokens.length < 5) continue;
+                if(allTokens.length < 4) continue;
 
                 var prefixNo = "";
                 var rawDate = "";
@@ -265,27 +261,31 @@
                     if(trackM) { subTrackCode = trackM[1]; break; }
                 }
 
-                if(allTokens[0].length === 4 && /^\d+$/.test(allTokens[0]) && allTokens[1].length === 6) {
-                    prefixNo = allTokens[0];
+                // 📌 終極相容邏輯：不管是1位數還是4位數，只要最後6碼是數字就拆為日期，前面剩餘部分全部當作序號
+                var firstToken = allTokens[0];
+                if (/^\d+$/.test(firstToken) && firstToken.length >= 7) {
+                    var len = firstToken.length;
+                    prefixNo = firstToken.substring(0, len - 6); // 自動擷取日期前面的所有數字
+                    rawDate = firstToken.substring(len - 6);     // 固定切最後 6 碼為日期
+                } else if (/^\d+$/.test(firstToken) && firstToken.length === 4 && allTokens[1] && allTokens[1].length === 6 && /^\d+$/.test(allTokens[1])) {
+                    prefixNo = firstToken;
                     rawDate = allTokens[1];
-                } else if(allTokens[0].length === 10 && /^\d+$/.test(allTokens[0])) {
-                    prefixNo = allTokens[0].substring(0, 4);
-                    rawDate = allTokens[0].substring(4, 10);
                 } else {
-                    var cleanHead = allTokens[0].match(/(\d{4})(\d{6})/);
+                    var cleanHead = firstToken.match(/(\d+)(\d{6})/);
                     if(cleanHead) {
                         prefixNo = cleanHead[1];
                         rawDate = cleanHead[2];
                     } else {
-                        var cleanHead4 = allTokens[0].match(/(\d{4})/);
-                        if(cleanHead4) prefixNo = cleanHead4[1];
-                        rawDate = "260625";
+                        var numMatch = firstToken.match(/(\d+)/);
+                        prefixNo = numMatch ? numMatch[1] : "ERR";
+                        rawDate = "250808";
                     }
                 }
 
                 var formattedDate = formatDateStr(rawDate);
-                var name = "劉浚銘";
+                var name = "劉浚銘"; 
                 var partNo = "";
+                
                 for(var t=0; t<allTokens.length; t++) {
                     var nameM = allTokens[t].match(/^([\u4e00-\u9fa5]{2,4})(.*)/);
                     if(nameM) {
@@ -297,8 +297,8 @@
                 }
 
                 var thickness = "4mil T/T";
-                var foilType = "RTF 1078*1";
-                var foilSizeOnly = "1078*1";
+                var foilType = "RTF 1035*1";
+                var foilSizeOnly = "1035*1";
 
                 for(var t=0; t<allTokens.length; t++) {
                     if(allTokens[t].indexOf("mil") !== -1) {
@@ -320,11 +320,10 @@
                 var emcQty = "";
                 var uQty = "";
                 for(var t=0; t<allTokens.length; t++) {
-                    if(allTokens[t].toUpperCase() === "EMC" && t+1 < allTokens.length) {
-                        emcQty = allTokens[t+1];
-                    } else {
+                    if(allTokens[t].toUpperCase().indexOf("EMC") !== -1) {
                         var directEmc = allTokens[t].match(/EMC(\d+)/i);
-                        if(directEmc) emcQty = directEmc[1];
+                        if(directEmc) { emcQty = directEmc[1]; }
+                        else if(t+1 < allTokens.length) { emcQty = allTokens[t+1]; }
                     }
                     var uM = allTokens[t].match(/^(\d+)U/i);
                     if(uM) uQty = uM[1];
@@ -381,7 +380,6 @@
                     var partNoIdx = match.index;
                     var frontPart = line.substring(0, partNoIdx).trim();
                     
-                    // 📌 智慧修正點：動態向前搜尋並抓取管理表內的實際 8 碼日期（如 20260625），不再鎖死舊程式的預設文字！
                     var dateNo = "26 6/25"; 
                     var dateMatch = frontPart.match(/(20\d{6})/);
                     if(dateMatch) {
@@ -404,7 +402,7 @@
             }
             saveDB(db);
             document.getElementById('textData2').value = '';
-            if(importCount > 0) alert("常備基板處理完成！動態日期已完美擷取，共匯入 " + importCount + " 筆。");
+            if(importCount > 0) alert("常備基板處理完成！共匯入 " + importCount + " 筆。");
         }
 
         function parseMode3() {
@@ -459,7 +457,7 @@
         function updateItem(idx, field, value) {
             var db = getDB();
             db[idx][field] = value;
-            localStorage.setItem('palletSysDB2026_exactDate', JSON.stringify(db));
+            localStorage.setItem('palletSysDB2026_v4', JSON.stringify(db));
             if(field === 'printCount') { renderTable(); }
         }
 
@@ -496,7 +494,7 @@
                     var tokens = item.line4.split(/\s+/); 
                     if(tokens.length >= 3) {
                         segments.push({ text: tokens[0] + " " + tokens[1] + "  ", isBold: true, color: "#000", isName: false });
-                        segments.push({ text: tokens[2] + " ", isBold: false, color: "#444", isName: true }); // 人名縮小、不加粗
+                        segments.push({ text: tokens[2] + " ", isBold: false, color: "#444", isName: true }); 
                         var remainTokens = tokens.slice(3).join(" ");
                         if(remainTokens) { segments.push({ text: " " + remainTokens, isBold: true, color: colorHex, isName: false }); }
                     } else {
@@ -536,7 +534,6 @@
                 }
             });
 
-            // 微型碼重疊自動反白機制
             var subTrackHtml = '';
             if(item.mode === 'mode1' && rowNum === 4 && item.subTrack) {
                 subTrackHtml = '<text x="44%" y="4.5" font-family="Arial" font-size="2.8" font-weight="bold" text-anchor="start" fill="#FFF" style="mix-blend-mode: difference; letter-spacing: 0.1px;">' + item.subTrack + '</text>';
@@ -575,14 +572,14 @@
 
                     if (item.mode === 'mode1') {
                         html += '<div class="label-cell pos-' + posIndex + '">' +
-                                '<div class="svg-wrapper m1-h1"></div>' + // 5公分頂部大留白
+                                '<div class="svg-wrapper m1-h1"></div>' + 
                                 '<div class="svg-wrapper m1-h2">' + makeSemanticSvg(item, 2, "center", "") + '</div>' + 
                                 '<div class="svg-wrapper m1-h3">' + makeSemanticSvg(item, 3, "center", "") + '</div>' + 
                                 '<div class="svg-wrapper m1-h4">' + makeSemanticSvg(item, 4, "center", qaSuffix) + '</div>' + 
                                 '</div>';
                     } else {
                         html += '<div class="label-cell pos-' + posIndex + '">' +
-                                '<div class="svg-wrapper m2-h1"></div>' + // 5公分頂部大留白
+                                '<div class="svg-wrapper m2-h1"></div>' + 
                                 '<div class="svg-wrapper m2-h2">' + makeSemanticSvg(item, 2, "center", "") + '</div>' + 
                                 '<div class="svg-wrapper m2-h3">' + makeSemanticSvg(item, 3, "left", qaSuffix) + '</div>' + 
                                 '</div>';
@@ -599,4 +596,3 @@
     </script>
 </body>
 </html>
-
