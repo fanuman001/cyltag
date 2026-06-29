@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>進料棧板標籤多功能管理系統 (A4絕對座標滿版對齊版)</title>
+    <title>進料棧板標籤多功能管理系統 (極致寬幅手寫空間版)</title>
     <style>
         body { font-family: "SimHei", "黑體", "新細明體", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
         .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -35,14 +35,13 @@
 
         #printArea { display: none; }
 
-        /* ==================== 【A4 2x3 雷射絕對座標定位區】 ==================== */
+        /* ==================== 【A4 2x3 極致寬幅座標微調區】 ==================== */
         @media print {
             @page { size: A4 portrait; margin: 0 !important; }
             html, body { background: white; margin: 0 !important; padding: 0 !important; width: 210mm; height: 297mm; }
             .no-print { display: none !important; }
             #printArea { display: block !important; background: transparent; padding: 0; margin: 0; width: 210mm; height: 297mm; }
             
-            /* 每頁 A4 容器 */
             .page { 
                 position: relative; 
                 width: 210mm; 
@@ -53,51 +52,53 @@
                 background: transparent;
             }
             
-            /* 絕對座標單一貼紙格 (寬100mm, 高95mm) */
+            /* 解放左右 Padding（從 5mm 縮減到 1mm），防止文字左右被切，直接滿版延伸 */
             .label-cell { 
                 position: absolute; 
                 width: 100mm; 
                 height: 95mm; 
                 box-sizing: border-box; 
-                padding: 8mm 5mm 5mm 5mm; /* 內襯留白，確保文字射在格線正中央 */
+                padding: 4mm 1mm 0mm 1mm; 
                 overflow: hidden; 
                 display: flex; 
                 flex-direction: column; 
-                justify-content: space-between;
+                justify-content: flex-start; /* 改用由上往下推，以便精準控制留白 */
                 background: transparent;
             }
             
-            /* 第一排座標 (Top: 0mm) */
+            /* 橫向與縱向精準格位 */
             .pos-0 { top: 0mm; left: 4mm; }
             .pos-1 { top: 0mm; left: 104mm; }
             
-            /* 第二排座標 (Top: 95mm) */
             .pos-2 { top: 95mm; left: 4mm; }
             .pos-3 { top: 95mm; left: 104mm; }
             
-            /* 第三排座標 (Top: 190mm) */
             .pos-4 { top: 190mm; left: 4mm; }
             .pos-5 { top: 190mm; left: 104mm; }
 
             .svg-line-container { width: 100%; height: 100%; display: block; overflow: hidden; }
             
-            /* 調整非常備版型各行行高 */
-            .m1-h1 { height: 10mm; } 
-            .m1-h2 { height: 22mm; } 
-            .m1-h3 { height: 22mm; } 
-            .m1-h4 { height: 25mm; } 
+            /* ==================== 完美吐出 3 公分、擴大手寫區的高度分配 ==================== */
+            /* 第一行留白 */
+            .m1-h1 { height: 6mm; } 
+            /* 第二行：料號種類 (稍微緊湊) */
+            .m1-h2 { height: 18mm; } 
+            /* 第三行：厚度規格 (稍微緊湊) */
+            .m1-h3 { height: 18mm; } 
+            /* 第四行：直接放大到 38mm！把這3公分往下逼，產生絕佳的中間與底部手寫留白空間 */
+            .m1-h4 { height: 38mm; display: flex; flex-direction: column; justify-content: flex-end; } 
 
-            /* 調整常備版型各行行高 */
-            .m2-h1 { height: 20mm; } 
-            .m2-h2 { height: 28mm; } 
-            .m2-h3 { height: 32mm; } 
+            /* 常備基板版型高度同步優化 */
+            .m2-h1 { height: 15mm; } 
+            .m2-h2 { height: 25mm; } 
+            .m2-h3 { height: 45mm; display: flex; flex-direction: column; justify-content: flex-end; } 
         }
     </style>
 </head>
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (A4絕對座標滿版對齊版)</h2>
+        <h2>棧板標籤自動流轉系統 (極致寬幅手寫空間版)</h2>
         
         <div class="config-panel">
             <label style="cursor: pointer;">
@@ -112,7 +113,7 @@
         </div>
 
         <div id="tab1" class="tab-content active">
-            <p>請直接將非常備資料整段複製貼上（系統自動排除裁切尺寸，並保留微型追蹤碼）：</p>
+            <p>請直接將非常備資料整段複製貼上（寬幅優化版，左右字體不再被切）：</p>
             <textarea id="textData1" placeholder="貼上包含 1174 260626... 的原始資料"></textarea>
             <button onclick="parseMode1()">精準剖析並匯入</button>
         </div>
@@ -212,8 +213,8 @@
             }
         }
 
-        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_absolute')) || []; }
-        function saveDB(data) { localStorage.setItem('palletSysDB2026_absolute', JSON.stringify(data)); renderTable(); }
+        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_wide')) || []; }
+        function saveDB(data) { localStorage.setItem('palletSysDB2026_wide', JSON.stringify(data)); renderTable(); }
 
         function formatDateStr(dStr) {
             dStr = dStr.trim();
@@ -253,9 +254,7 @@
                 var cellMatrix = [];
                 for(var i=0; i<linesRaw.length; i++) {
                     var cells = linesRaw[i].split(/[\t]/).map(function(c){ return c.trim(); }).filter(function(c){ return c!==""; });
-                    if(cells.length > 0) {
-                        cellMatrix.push(cells);
-                    }
+                    if(cells.length > 0) { cellMatrix.push(cells); }
                 }
 
                 var allTokens = [];
@@ -486,7 +485,7 @@
         function updateItem(idx, field, value) {
             var db = getDB();
             db[idx][field] = value;
-            localStorage.setItem('palletSysDB2026_absolute', JSON.stringify(db));
+            localStorage.setItem('palletSysDB2026_wide', JSON.stringify(db));
             if(field === 'printCount') { renderTable(); }
         }
 
@@ -555,9 +554,11 @@
 
             var subTrackHtml = '';
             if(item.mode === 'mode1' && rowNum === 4 && item.subTrack) {
-                subTrackHtml = '<text x="46%" y="2.5" font-family="Arial" font-size="3" font-weight="normal" text-anchor="start" fill="#444">' + item.subTrack + '</text>';
+                // 將微型小字 y 座標控制在合理中下區段，並精緻化尺寸
+                subTrackHtml = '<text x="44%" y="3.5" font-family="Arial" font-size="2.6" font-weight="normal" text-anchor="start" fill="#555">' + item.subTrack + '</text>';
             }
 
+            /* 修正為實體拉伸長寬比，徹底消除左右被裁切的死穴 */
             return '<svg class="svg-line-container" viewBox="0 0 100 12" preserveAspectRatio="' + aspectRatio + '" xmlns="http://www.w3.org/2000/svg">' +
                    subTrackHtml +
                    '<text x="'+xPos+'" y="10" font-family="SimHei, 黑體, Arial" font-size="11" text-anchor="' + textAnchor + '">' + tspanHtml + '</text>' +
@@ -577,15 +578,12 @@
                 if(item.printCount <= 0) continue; 
                 
                 for(var c=0; c<item.printCount; c++) {
-                    // 每滿 6 格就換一個新頁面容器
                     if(cellCounter % labelsPerPage === 0) {
                         if(cellCounter > 0) html += '</div>';
                         html += '<div class="page">';
                     }
 
-                    // 計算當前標籤在這一頁 A4 裡的相對位置索引 (0 ~ 5)
                     var posIndex = cellCounter % labelsPerPage;
-
                     var isCurrentQA = (item.isQA && c === 0);
                     var qaSuffix = isCurrentQA ? "  QA" : "";
 
