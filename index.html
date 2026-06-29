@@ -237,7 +237,6 @@
                             }
                         }
 
-                        // 欄位改以「單一空白」串接，供後續 doPrint 依涵意精準解析
                         var line2_val = purePartNo + " " + typeNo; 
                         var line3_val = spec1 + " " + spec2 + " " + size;
                         
@@ -247,7 +246,6 @@
                         }
                         var formattedDate = datePart ? formatDateStr(datePart) : "26 6/29";
 
-                        // 第四行串接結構：26 6/26 廖品勳 60 7-260426-060
                         var line4_val = formattedDate + " " + name + " " + emcCount + " " + customTrackingCode;
 
                         var uniqueKey = customTrackingCode ? customTrackingCode : pureSerialNo;
@@ -310,7 +308,7 @@
 
                     var line2_val = purePartNo;
                     var line3_val = ""; 
-                    var line4_val = dateNo; // 格式如 "26 6/29"
+                    var line4_val = dateNo;
 
                     var uniqueKey = purePartNo + " (#" + pureSeqNo + ")";
 
@@ -405,12 +403,10 @@
             var xPos = (alignMode === "left") ? "0%" : "50%";
             var aspectRatio = "none";
             
-            // 建立細緻的字串區塊陣列 [{ text: '內容', isBold: true/false }]
             var segments = [];
 
             if (item.mode === 'mode1') {
                 if (rowNum === 2) {
-                    // 第二行涵意：[料號](粗體) + [型號](正常)
                     var tokens = item.line2.split(/\s+/);
                     if(tokens.length >= 2) {
                         segments.push({ text: tokens[0] + " ", isBold: true });
@@ -420,7 +416,6 @@
                     }
                 } 
                 else if (rowNum === 3) {
-                    // 第三行涵意：[厚度/銅箔](粗體) + [規格尺寸](正常)
                     var tokens = item.line3.split(/\s+/);
                     if(tokens.length >= 2) {
                         segments.push({ text: tokens[0] + " " + (tokens[1]||"") + " ", isBold: true });
@@ -430,15 +425,15 @@
                     }
                 } 
                 else if (rowNum === 4) {
-                    // 第四行涵意：[26](正常) + [6/26](粗體) + [人員](正常) + [數量](正常) + [追蹤碼](正常)
-                    var tokens = item.line4.split(/\s+/); // 預期: ["26", "6/26", "廖品勳", "60", "7-260426-060"]
-                    if(tokens.length >= 4) {
+                    var tokens = item.line4.split(/\s+/); 
+                    if(tokens.length >= 2) {
                         segments.push({ text: tokens[0] + " ", isBold: false });
-                        segments.push({ text: tokens[1] + " ", isBold: true });
-                        segments.push({ text: tokens[2] + " " + tokens[3] + " ", isBold: false });
-                        // 剩餘部分(如追蹤碼與QA)
-                        var remain = tokens.slice(4).join(" ");
-                        if(remain) segments.push({ text: remain + " ", isBold: false });
+                        if(tokens[1]) segments.push({ text: tokens[1] + " ", isBold: true });
+                        
+                        var remainTokens = tokens.slice(2);
+                        if(remainTokens.length > 0) {
+                            segments.push({ text: remainTokens.join(" ") + " ", isBold: false });
+                        }
                     } else {
                         segments.push({ text: item.line4 + " ", isBold: false });
                     }
@@ -446,12 +441,10 @@
             } 
             else if (item.mode === 'mode2') {
                 if (rowNum === 2) {
-                    // 模式二第二行：[1-Nn16-U1EA](粗體)
                     segments.push({ text: item.line2, isBold: true });
                 } 
                 else if (rowNum === 3) {
-                    // 模式二第三行：[26](正常) + [6/29](粗體)
-                    var tokens = item.line4.split(/\s+/); // 預期: ["26", "6/29"]
+                    var tokens = item.line4.split(/\s+/); 
                     if(tokens.length >= 2) {
                         segments.push({ text: tokens[0] + " ", isBold: false });
                         segments.push({ text: tokens[1] + " ", isBold: true });
@@ -463,18 +456,15 @@
                 }
             }
 
-            // 處理額外附加的 QA 字樣 (一律維持極粗體特徵)
             if(extraQA) {
                 segments.push({ text: extraQA, isBold: true });
             }
 
-            // 計算完整字串長度，防溢出機制
             var fullTextLen = segments.map(function(s){ return s.text; }).join("").length;
             if (fullTextLen > 11) {
                 aspectRatio = (alignMode === "left") ? "xMinYMid meet" : "xMidYMid meet";
             }
 
-            // 組裝內嵌多重屬性的 tspan
             var tspanHtml = '';
             segments.forEach(function(seg) {
                 if(!seg.text) return;
@@ -488,7 +478,7 @@
             if(tspanHtml === '') return '&nbsp;';
 
             return '<svg class="svg-line-container" viewBox="0 0 100 12" preserveAspectRatio="' + aspectRatio + '" xmlns="http://www.w3.org/2000/svg">' +
-                   '<text x="'+xPos+'" y="10" font-family="SimHei, 黑體, Arial" font-size="11" text-anchor="'+textAnchor+'">' + tspanHtml + '</text>' +
+                   '<text x="'+xPos+'" y="10" font-family="SimHei, 黑體, Arial" font-size="11" text-anchor="' + textAnchor + '">' + tspanHtml + '</text>' +
                    '</svg>';
         }
 
