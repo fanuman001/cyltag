@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>A4 1x6 標籤管理與列印系統 (XP離線版)</title>
+    <title>A4 2x3 棧板標籤管理與列印系統 (XP離線版)</title>
     <style>
         body {
             font-family: "新細明體", "MingLiU", Arial, sans-serif;
@@ -12,17 +12,17 @@
             color: #333;
         }
         .container {
-            max-width: 900px;
+            max-width: 950px;
             margin: 0 auto;
             background: white;
             padding: 25px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        h2 { border-bottom: 2px solid #0056b3; padding-bottom: 10px; color: #0056b3; }
+        h2 { border-bottom: 2px solid #0056b3; padding-bottom: 10px; color: #0056b3; margin-top: 0; }
         textarea {
             width: 100%;
-            height: 180px;
+            height: 150px;
             margin-bottom: 15px;
             font-family: monospace;
             box-sizing: border-box;
@@ -38,8 +38,11 @@
             border: none;
             border-radius: 4px;
             margin-right: 10px;
+            font-weight: bold;
         }
         button:hover { background-color: #0056b3; }
+        button.print-btn { background-color: #28a745; }
+        button.print-btn:hover { background-color: #218838; }
         button.danger { background-color: #dc3545; }
         button.danger:hover { background-color: #bd2130; }
         
@@ -51,60 +54,85 @@
         }
         .data-list th, .data-list td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 10px;
             text-align: left;
         }
         .data-list th { background-color: #e9ecef; }
+        .print-count-input {
+            width: 50px;
+            padding: 4px;
+            text-align: center;
+        }
 
-        /* ==================== 列印專用 A4 1x6 樣式 ==================== */
+        /* ==================== 列印專用 A4 2x3 樣式 ==================== */
         @media print {
             body { background: white; padding: 0; }
             .no-print { display: none !important; }
+            
             .page {
                 width: 210mm;
                 height: 297mm;
                 page-break-after: always;
                 box-sizing: border-box;
-                padding-top: 10mm;
-                padding-left: 10mm;
-            }
-            .label-cell {
-                width: 190mm;
-                height: 45mm;
-                margin-bottom: 1mm;
-                border: 1px dotted #ccc; /* 貼紙外框線 */
-                box-sizing: border-box;
-                padding: 12px 15px;
-                font-size: 14px;
-                line-height: 1.4;
+                padding-top: 10mm;   /* 上邊距 */
+                padding-left: 10mm;  /* 左邊距 */
                 overflow: hidden;
             }
-            .line-row { display: block; clear: both; margin-bottom: 2px; }
-            .left-part { float: left; }
-            .right-part { float: right; }
+            
+            /* 2x3 貼紙格局 */
+            .label-cell {
+                width: 92mm;         /* 貼紙寬度 (大約 190mm / 2) */
+                height: 90mm;        /* 貼紙高度 (大約 270mm / 3) */
+                float: left;
+                margin-right: 4mm;   /* 左右貼紙間距 */
+                margin-bottom: 4mm;  /* 上下貼紙間距 */
+                border: 1px dotted #bbb; /* 紅框線或虛線框，裁切完可改成 none */
+                box-sizing: border-box;
+                padding: 15mm 8mm 5mm 8mm; /* 配合大字放大留白 */
+                overflow: hidden;
+            }
+            
+            /* 每列的第二張貼紙去掉右邊距，防止擠下去 */
+            .label-cell:nth-child(2n) {
+                margin-right: 0;
+            }
+            
+            /* 配合照片內容大字排版 */
+            .p-line {
+                display: block;
+                width: 100%;
+                white-space: nowrap;
+                font-weight: bold;
+                color: #000;
+                margin-bottom: 8mm; /* 行距 */
+            }
+            .line-1 { font-size: 26pt; } /* EM-890 RTF3 */
+            .line-2 { font-size: 24pt; } /* 4mil 1/H 1035*2 */
+            .line-3 { font-size: 20pt; } /* 26 6/25 王水欽 4000 */
         }
     </style>
 </head>
 <body>
 
     <div class="container no-print">
-        <h2>A4 1x6 貼紙資料儲存與覆蓋系統</h2>
+        <h2>A4 2x3 棧板標籤自動重組系統</h2>
         
-        <p><strong>1. 請在下方貼上新資料：</strong></p>
-        <textarea id="rawData" placeholder="請在此貼上含有編碼的資料..."></textarea>
+        <p><strong>1. 請貼上原始文字資料：</strong></p>
+        <textarea id="rawData" placeholder="貼上資料（包含編碼與修改字樣）..."></textarea>
         
         <div class="btn-group">
             <button onclick="processAndSave()">1. 讀取並檢查儲存</button>
-            <button onclick="window.print()" style="background-color: #28a745;">2. 列印全部儲存標籤</button>
-            <button class="danger" onclick="clearAllData()">清空所有記憶庫</button>
+            <button class="print-btn" onclick="renderPrintLabels(); setTimeout(function(){window.print();}, 300);">2. 開始列印設定張數</button>
+            <button class="danger" onclick="clearAllData()">清空記憶庫</button>
         </div>
 
-        <h3>目前資料庫內已儲存的標籤 (依編碼排序)</h3>
+        <h3>目前資料庫 (可調整欲列印的張數)</h3>
         <table class="data-list">
             <thead>
                 <tr>
                     <th width="15%">主要編碼</th>
-                    <th>標籤預覽內容</th>
+                    <th width="65%">重組預覽 (料號 / 規格 / 日期人員)</th>
+                    <th width="20%">列印張數</th>
                 </tr>
             </thead>
             <tbody id="storageList">
@@ -115,159 +143,167 @@
     <div id="printArea"></div>
 
     <script>
-        // 頁面載入時，自動從瀏覽器記憶體讀取舊資料
+        // 初始化載入
         window.onload = function() {
             renderStorageTable();
-            renderPrintLabels();
         };
 
-        // 讀取並處理貼上的文字
+        // 解析並儲存
         function processAndSave() {
             var rawText = document.getElementById('rawData').value.trim();
-            if (!rawText) {
-                alert("請先貼上資料！");
-                return;
-            }
+            if (!rawText) { alert("請先貼上資料！"); return; }
 
             var lines = rawText.split('\n');
             var currentLabel = [];
-            
-            // 從記憶體中取出目前已有的資料庫 (物件格式 { "1165": [...], "1166": [...] })
-            var db = JSON.parse(localStorage.getItem('labelDB')) || {};
+            var db = JSON.parse(localStorage.getItem('palletLabelDB')) || {};
 
             for (var i = 0; i < lines.length; i++) {
                 var line = lines[i].trim();
                 if (line !== "") {
                     currentLabel.push(lines[i]);
                 }
-
-                // 偵測到「修改」代表一筆標籤結束，開始解析編碼
                 if (line.indexOf("修改") !== -1) {
                     if (currentLabel.length > 0) {
                         saveToDB(currentLabel, db);
-                        currentLabel = []; // 清空處理下一筆
+                        currentLabel = [];
                     }
                 }
             }
-            // 補漏掉的最後一筆
-            if (currentLabel.length > 0) {
-                saveToDB(currentLabel, db);
-            }
+            if (currentLabel.length > 0) { saveToDB(currentLabel, db); }
 
-            // 儲存回瀏覽器記憶體
-            localStorage.setItem('labelDB', JSON.stringify(db));
-            
-            // 重新整理畫面
+            localStorage.setItem('palletLabelDB', JSON.stringify(db));
             renderStorageTable();
-            renderPrintLabels();
-            document.getElementById('rawData').value = ''; // 清空輸入框
-            alert("資料處理完畢！");
+            document.getElementById('rawData').value = '';
+            alert("資料讀取並比對完成！");
         }
 
-        // 核心辨識與覆蓋邏輯
+        // 資料提取與比對邏輯
         function saveToDB(labelLines, db) {
-            // 取出第一行 (例如 "1165\t260625")
-            var firstLine = labelLines[0].trim();
-            // 切開取得最前面的編碼 (例如 "1165")
-            var code = firstLine.split('\t')[0].trim();
+            if (labelLines.length < 7) return; // 資料行數不足則跳過
 
-            if (!code) return; // 沒找到編碼就不處理
+            // 清洗資料（除去 Tab 與空格）
+            var r = labelLines.map(function(l) {
+                return l.split('\t').map(function(p) { return p.trim(); });
+            });
 
-            // 檢查是否重複
-            if (db[code]) {
-                // 跳出提示問使用者是否覆蓋
-                var isOverwrite = confirm("偵測到重複編碼【" + code + "】\n\n是否要用新資料「覆蓋」舊資料？\n(按『確定』覆蓋，按『取消』保留舊資料)");
-                if (!isOverwrite) {
-                    return; // 使用者選取消，跳過這筆
-                }
+            // 提取關鍵欄位
+            var code = r[0][0];      // 1165
+            var dateRaw = r[0][1];   // 260625
+            var name = r[1][0];      // 王水欽
+            var partNo = r[1][1];    // EM-890
+            var spec1 = r[2][0];     // 4mil
+            var spec2 = r[2][1];     // 1/H
+            var typeNo = r[3][0];    // RTF3
+            var size = r[3][1];      // 1035*2
+            var emcCount = r[5][1];  // 4000
+
+            if (!code) return;
+
+            // 格式化日期： 260625 -> 26 6/25
+            var formattedDate = dateRaw;
+            if (dateRaw && dateRaw.length === 6) {
+                var yy = dateRaw.substring(0, 2);
+                var mm = parseInt(dateRaw.substring(2, 4), 10);
+                var dd = parseInt(dateRaw.substring(4, 6), 10);
+                formattedDate = yy + " " + mm + "/" + dd;
             }
 
-            // 寫入或覆蓋資料庫
-            db[code] = labelLines;
+            // 組裝成您要求的 3 行格式
+            var parsedObj = {
+                code: code,
+                line1: partNo + " " + typeNo,               // EM-890 RTF3
+                line2: spec1 + " " + spec2 + " " + size,   // 4mil 1/H 1035*2
+                line3: formattedDate + " " + name + " " + emcCount, // 26 6/25 王水欽 4000
+                printCount: 1 // 預設列印 1 張
+            };
+
+            // 重複檢查
+            if (db[code]) {
+                var isOverwrite = confirm("編碼【" + code + "】已存在！\n\n是否要覆蓋舊資料？");
+                if (!isOverwrite) return;
+            }
+
+            db[code] = parsedObj;
         }
 
-        // 渲染網頁上的歷史表格
+        // 更新表格列表，允許調整張數
         function renderStorageTable() {
-            var db = JSON.parse(localStorage.getItem('labelDB')) || {};
+            var db = JSON.parse(localStorage.getItem('palletLabelDB')) || {};
             var tbody = document.getElementById('storageList');
             tbody.innerHTML = '';
-
-            // 將編碼排序後呈現
             var sortedKeys = Object.keys(db).sort();
 
             if (sortedKeys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="2" style="color:gray; text-align:center;">目前無資料</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3" style="color:gray; text-align:center;">目前無儲存資料</td></tr>';
                 return;
             }
 
             for (var i = 0; i < sortedKeys.length; i++) {
                 var key = sortedKeys[i];
+                var item = db[key];
                 var row = document.createElement('tr');
+
+                row.innerHTML = '<td><strong>' + item.code + '</strong></td>' +
+                    '<td><small>❶ ' + item.line1 + '<br>❷ ' + item.line2 + '<br>❸ ' + item.line3 + '</small></td>' +
+                    '<td><input type="number" class="print-count-input" min="0" value="' + item.printCount + '" onchange="updateCount(\''+key+'\', this.value)"> 張</td>';
                 
-                var tdKey = document.createElement('td');
-                tdKey.innerHTML = '<strong>' + key + '</strong>';
-                
-                var tdContent = document.createElement('td');
-                tdContent.innerText = db[key].join(' | '); // 用直線簡短預覽
-                
-                row.appendChild(tdKey);
-                row.appendChild(tdContent);
                 tbody.appendChild(row);
             }
         }
 
-        // 渲染 A4 1x6 的列印區塊
+        // 修改張數時即時同步
+        function updateCount(key, val) {
+            var db = JSON.parse(localStorage.getItem('palletLabelDB')) || {};
+            if (db[key]) {
+                db[key].printCount = parseInt(val, 10) || 0;
+                localStorage.setItem('palletLabelDB', JSON.stringify(db));
+            }
+        }
+
+        // 建立符合 2x3 規格的列印版面
         function renderPrintLabels() {
-            var db = JSON.parse(localStorage.getItem('labelDB')) || {};
+            var db = JSON.parse(localStorage.getItem('palletLabelDB')) || {};
             var sortedKeys = Object.keys(db).sort();
             var printArea = document.getElementById('printArea');
             printArea.innerHTML = '';
 
             var html = '';
-            var labelsPerPage = 6;
+            var totalLabelsInPage = 0;
+            var labelsPerPage = 6; // 一頁 2x3 = 6 張
 
             for (var i = 0; i < sortedKeys.length; i++) {
-                var key = sortedKeys[i];
-                var singleLabel = db[key];
-
-                // 每 6 格自動開一個 A4 新頁面
-                if (i % labelsPerPage === 0) {
-                    if (i > 0) html += '</div>';
-                    html += '<div class="page">';
-                }
-
-                html += '<div class="label-cell">';
+                var item = db[sortedKeys[i]];
                 
-                // 處理每行內部
-                for (var j = 0; j < singleLabel.length; j++) {
-                    var parts = singleLabel[j].split('\t');
-                    html += '<div class="line-row">';
-                    if (parts.length >= 2) {
-                        html += '<span class="left-part">' + parts[0].trim() + '</span>';
-                        html += '<span class="right-part">' + parts[1].trim() + '</span>';
-                    } else {
-                        html += '<span>' + singleLabel[j].trim() + '</span>';
+                // 根據使用者設定的「列印張數」重複複製該標籤
+                for (var c = 0; c < item.printCount; c++) {
+                    if (totalLabelsInPage % labelsPerPage === 0) {
+                        if (totalLabelsInPage > 0) html += '</div>'; // 關閉上一頁
+                        html += '<div class="page">';
                     }
-                    html += '</div>';
+
+                    html += '<div class="label-cell">' +
+                            '<span class="p-line line-1">' + item.line1 + '</span>' +
+                            '<span class="p-line line-2">' + item.line2 + '</span>' +
+                            '<span class="p-line line-3">' + item.line3 + '</span>' +
+                            '</div>';
+
+                    totalLabelsInPage++;
                 }
-
-                html += '</div>';
             }
 
-            if (sortedKeys.length > 0) {
-                html += '</div>';
-            }
+            if (totalLabelsInPage > 0) { html += '</div>'; }
             printArea.innerHTML = html;
         }
 
-        // 清空所有資料
+        // 清空記憶庫
         function clearAllData() {
-            if (confirm("確定要刪除記憶庫裡「所有」的標籤資料嗎？清除後無法復原。")) {
-                localStorage.removeItem('labelDB');
+            if (confirm("確定要清空所有已儲存的標籤資料嗎？")) {
+                localStorage.removeItem('palletLabelDB');
                 renderStorageTable();
-                renderPrintLabels();
+                document.getElementById('printArea').innerHTML = '';
             }
         }
     </script>
 </body>
 </html>
+
