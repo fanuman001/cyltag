@@ -243,7 +243,7 @@
             alert("模式一處理完成！");
         }
 
-        // 【模式二剖析：進階跨時段防重複重置】
+        // 【模式二剖析】
         function parseMode2() {
             var txt = document.getElementById('textData2').value.trim();
             if(!txt) return;
@@ -286,18 +286,15 @@
                     var line3_val = ""; 
                     var line4_val = dateNo;
 
-                    // 使用「原料編號+序號組合」進行更精準的判定
                     var uniqueKey = purePartNo + " (#" + pureSeqNo + ")";
 
                     var dupIdx = checkDuplicateKey(db, 'mode2', uniqueKey);
                     if(dupIdx !== -1) {
-                        // 如果是早上的重複項，將其設定為 0 張
                         db[dupIdx].printCount = 0;
                         if(showAlert) {
                             alert("模式二：項目【" + purePartNo + "】偵測到早上下午重疊，已自動將舊資料列印張數歸零。");
                         }
                     } else {
-                        // 下午全新的項目補進來，設定為 1 張
                         db.push({ mode: 'mode2', pureCode: uniqueKey, line2: line2_val, line3: line3_val, line4: line4_val, isQA: hasIqc, printCount: 1 });
                     }
                     importCount++;
@@ -352,7 +349,7 @@
                 var highlightStyle = item.printCount === 0 ? 'style="background:#f8d7da; color:#721c24;"' : '';
 
                 tr.innerHTML = '<td '+highlightStyle+'>' + (i+1) + '</td>' +
-                    '<td '+highlightStyle+'>' + modeText + '</td>' +
+                    '<td '+highlightStyle+'> = modeText + '</td>' +
                     '<td '+highlightStyle+'><b>' + item.pureCode + '</b></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line2+'" onchange="updateItem('+i+', \'line2\', this.value)"></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line3+'" '+disabledL3+' onchange="updateItem('+i+', \'line3\', this.value)"></td>' +
@@ -446,9 +443,9 @@
 
                         html += '<div class="label-cell">' +
                                 '<div class="m1-h1"></div>' + 
-                                '<div class="m1-h2">' + makeSvgLine(item.line2, "center", "bold") + '</div>' + // 第二行 粗體
-                                '<div class="m1-h3">' + makeSvgLine(item.line3, "center", "normal") + '</div>' + // 第三行 正常體
-                                '<div class="m1-h4">' + makeSvgLine(l4_text, "center", "normal") + '</div>' + // 第四行+QA 正常體
+                                '<div class="m1-h2">' + makeSvgLine(item.line2, "center", "bold") + '</div>' + // 第二行 (EM-896K2) 粗體
+                                '<div class="m1-h3">' + makeSvgLine(item.line3, "center", "normal") + '</div>' + // 第三行 (4.5mil 1/H...) 正常體
+                                '<div class="m1-h4">' + makeSvgLine(l4_text, "center", "bold") + '</div>' + // 第四行 (26正常 6/26...) 粗體
                                 '</div>';
                     } else {
                         // 模式二粗細字流分流控制
@@ -473,4 +470,3 @@
     </script>
 </body>
 </html>
-
