@@ -16,7 +16,7 @@
         textarea { width: 100%; height: 120px; font-family: monospace; box-sizing: border-box; padding: 10px; margin-bottom: 10px; }
         .form-group { margin-bottom: 10px; }
         .form-group label { display: inline-block; width: 100px; font-weight: bold; }
-        .form-group input, .form-group select { padding: 5px; width: 200px; }
+        .form-group input, .form-group select { padding: 5px; width: 250px; }
         .btn-group { margin-top: 15px; margin-bottom: 20px; }
         button { padding: 10px 20px; font-size: 14px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; margin-right: 10px; font-weight: bold; }
         button:hover { background-color: #0056b3; }
@@ -29,7 +29,7 @@
         .data-list { border-collapse: collapse; width: 100%; margin-top: 10px; }
         .data-list th, .data-list td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
         .data-list th { background-color: #f1f3f5; }
-        .edit-input { width: 90%; padding: 4px; box-sizing: border-box; }
+        .edit-input { width: 95%; padding: 4px; box-sizing: border-box; }
         .count-input { width: 45px; padding: 4px; text-align: center; }
 
         /* ==================== 列印專用 A4 2x3 樣式 ==================== */
@@ -38,21 +38,22 @@
             .no-print { display: none !important; }
             .page { width: 210mm; height: 297mm; page-break-after: always; box-sizing: border-box; padding-top: 12mm; padding-left: 10mm; overflow: hidden; }
             /* 2x3 貼紙格局 */
-            .label-cell { width: 92mm; height: 90mm; float: left; margin-right: 4mm; margin-bottom: 4mm; border: 1px dotted #bbb; box-sizing: border-box; padding: 12mm 6mm 5mm 6mm; overflow: hidden; }
+            .label-cell { width: 92mm; height: 90mm; float: left; margin-right: 4mm; margin-bottom: 4mm; border: 1px dotted #bbb; box-sizing: border-box; padding: 10mm 5mm 5mm 5mm; overflow: hidden; }
             .label-cell:nth-child(2n) { margin-right: 0; }
             
-            /* 配合照片內容大字排版 */
+            /* 大字排版 */
             .p-line { display: block; width: 100%; white-space: nowrap; font-weight: bold; color: #000; }
-            .line-1 { height: 22mm; font-size: 24pt; } /* 第一行留白 */
-            .line-2 { height: 24mm; font-size: 28pt; } /* 原料編號 (1-Nn16-U1EA) */
-            .line-3 { height: 24mm; font-size: 26pt; } /* 日期 (26 6/29 QA) */
+            .line-1 { height: 16mm; font-size: 24pt; } /* 第一行留白 */
+            .line-2 { height: 18mm; font-size: 20pt; } /* 第二行 (料號) */
+            .line-3 { height: 18mm; font-size: 20pt; } /* 第三行 (規格) */
+            .line-4 { height: 18mm; font-size: 18pt; } /* 第四行 (日期、人員、數量、QA) */
         }
     </style>
 </head>
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (1*6 / 進料表 / 手動輸入)</h2>
+        <h2>棧板標籤自動流轉系統 (2x3 格式優化版)</h2>
         
         <div class="tabs">
             <div class="tab active" onclick="switchTab(1)">模式一：貼上直式文字(1*6)</div>
@@ -62,7 +63,7 @@
 
         <div id="tab1" class="tab-content active">
             <p>請貼上第一種原始文字資料（包含「修改」字樣）：</p>
-            <textarea id="textData1" placeholder="1165	260625&#10;王水欽	EM-890&#10;...&#10;7-260529-070 	修改"></textarea>
+            <textarea id="textData1" placeholder="1165	260625&#10;王水欽	EM-890&#10;4mil 	1/H&#10;RTF3 	1035*2&#10; 	49.2*33.0&#10;EMC	4000&#10;4000	U2635916&#10; &#10;7-260529-070 	修改"></textarea>
             <button onclick="parseMode1()">剖析並匯入</button>
         </div>
 
@@ -74,10 +75,13 @@
 
         <div id="tab3" class="tab-content">
             <div class="form-group">
-                <label>原料編號：</label><input type="text" id="manualPart" placeholder="例如：1-Nn16-U1EA">
+                <label>第二行內容：</label><input type="text" id="manualL2" placeholder="如：料號 EM-890 RTF3 或 1-Nn16-U1EA">
             </div>
             <div class="form-group">
-                <label>進料日期：</label><input type="text" id="manualDate" placeholder="例如：26 6/29">
+                <label>第三行內容：</label><input type="text" id="manualL3" placeholder="如：規格 4mil 1/H 1035*2 (若無可不填)">
+            </div>
+            <div class="form-group">
+                <label>第四行內容：</label><input type="text" id="manualL4" placeholder="如：26 6/25 王水欽 4000">
             </div>
             <div class="form-group">
                 <label>是否IQC/QA：</label>
@@ -98,12 +102,13 @@
         <table class="data-list">
             <thead>
                 <tr>
-                    <th width="8%">序號</th>
-                    <th width="35%">第二行 (原料編號)</th>
-                    <th width="25%">第三行 (日期資訊)</th>
-                    <th width="12%">含有QA後綴</th>
-                    <th width="10%">列印張數</th>
-                    <th width="10%">管理</th>
+                    <th width="5%">序</th>
+                    <th width="30%">第二行 (料號/編號)</th>
+                    <th width="25%">第三行 (規格資訊)</th>
+                    <th width="20%">第四行 (日期人員)</th>
+                    <th width="8%">QA字樣</th>
+                    <th width="6%">張數</th>
+                    <th width="6%">管理</th>
                 </tr>
             </thead>
             <tbody id="storageList"></tbody>
@@ -124,14 +129,13 @@
             document.getElementsByClassName('tab')[num-1].classList.add('active');
         }
 
-        // 共通讀取/儲存核心
         function getDB() { return JSON.parse(localStorage.getItem('palletSysDB')) || []; }
         function saveDB(data) { localStorage.setItem('palletSysDB', JSON.stringify(data)); renderTable(); }
 
-        // 格式化日期函數： 20260629 或 260629 -> 26 6/29
+        // 格式化日期函數： 20260625 或 260625 -> 26 6/25
         function formatDateStr(dStr) {
             dStr = dStr.trim();
-            if(dStr.length === 8) dStr = dStr.substring(2); // 20260629 -> 260629
+            if(dStr.length === 8) dStr = dStr.substring(2);
             if(dStr.length === 6) {
                 var yy = dStr.substring(0, 2);
                 var mm = parseInt(dStr.substring(2, 4), 10);
@@ -141,7 +145,7 @@
             return dStr;
         }
 
-        // 【模式一剖析】
+        // 【模式一剖析：直式 1x6 資料重新組合】
         function parseMode1() {
             var txt = document.getElementById('textData1').value.trim();
             if(!txt) return;
@@ -152,27 +156,42 @@
             for(var i=0; i<lines.length; i++) {
                 if(lines[i].trim() !== "") currentChunk.push(lines[i]);
                 if(lines[i].indexOf("修改") !== -1) {
-                    if(currentChunk.length >= 4) {
-                        var r0 = currentChunk[0].split('\t');
-                        var r1 = currentChunk[1].split('\t');
-                        var partNo = (r1[1] || r1[0] || "").trim(); // 抓料號
-                        var dateNo = formatDateStr(r0[1] || "");
-                        
-                        // 檢查重複
-                        var isDup = db.some(function(x){ return x.line2 === partNo; });
-                        if(isDup && !confirm("原料編號【" + partNo + "】已存在，是否重複匯入？")) { currentChunk = []; continue; }
+                    if(currentChunk.length >= 6) {
+                        // 清洗單行資料
+                        var r = currentChunk.map(function(l) {
+                            return l.split('\t').map(function(p) { return p.trim(); });
+                        });
 
-                        db.push({ line2: partNo, line3: dateNo, isQA: false, printCount: 1 });
+                        // 欄位抽取
+                        var dateRaw  = r[0][1] || ""; // 260625
+                        var name     = r[1][0] || ""; // 王水欽
+                        var partNo   = r[1][1] || ""; // EM-890
+                        var spec1    = r[2][0] || ""; // 4mil
+                        var spec2    = r[2][1] || ""; // 1/H
+                        var typeNo   = r[3][0] || ""; // RTF3
+                        var size     = r[3][1] || ""; // 1035*2
+                        var emcCount = r[5][1] || ""; // 4000
+
+                        // 格式重組
+                        var line2_val = "料號" + partNo + " " + typeNo;               // 料號EM-890 RTF3
+                        var line3_val = "規格" + spec1 + " " + spec2 + " " + size;   // 規格4mil 1/H 1035*2
+                        var line4_val = formatDateStr(dateRaw) + " " + name + " " + emcCount; // 26 6/25 王水欽 4000
+
+                        // 檢查重複
+                        var isDup = db.some(function(x){ return x.line2 === line2_val && x.line4 === line4_val; });
+                        if(isDup && !confirm("該筆料號資料已存在，是否重複匯入？")) { currentChunk = []; continue; }
+
+                        db.push({ line2: line2_val, line3: line3_val, line4: line4_val, isQA: false, printCount: 1 });
                     }
                     currentChunk = [];
                 }
             }
             saveDB(db);
             document.getElementById('textData1').value = '';
-            alert("模式一匯入完成！");
+            alert("模式一資料重組匯入完成！");
         }
 
-        // 【模式二剖析】
+        // 【模式二剖析：網頁進料表】
         function parseMode2() {
             var txt = document.getElementById('textData2').value.trim();
             if(!txt) return;
@@ -182,47 +201,52 @@
             for(var i=0; i<lines.length; i++) {
                 var cols = lines[i].split('\t');
                 if(cols.length < 5) continue; 
-                if(isNaN(parseInt(cols[0].trim(), 10))) continue; // 跳過表頭
+                if(isNaN(parseInt(cols[0].trim(), 10))) continue; // 跳過非數字表頭
 
                 var dateNo = formatDateStr(cols[1]); // 第二欄 日期
                 var partNo = cols[4].trim();         // 第五欄 原料編號
-                var iqcStatus = cols.length >= 11 ? cols[10].trim() : cols[cols.length-3].trim(); // 是否IQC欄位
+                var iqcStatus = cols.length >= 11 ? cols[10].trim() : cols[cols.length-3].trim(); // 是否IQC
 
-                // 檢查重複
-                var isDup = db.some(function(x){ return x.line2 === partNo; });
-                if(isDup && !confirm("原料編號【" + partNo + "】已存在，是否重複匯入？")) { continue; }
+                var line2_val = partNo;
+                var line3_val = ""; // 進料表沒有規格，留空
+                var line4_val = dateNo;
+
+                var isDup = db.some(function(x){ return x.line2 === line2_val && x.line4 === line4_val; });
+                if(isDup && !confirm("資料【" + partNo + "】已存在，是否重複匯入？")) { continue; }
 
                 if(iqcStatus === "有") {
-                    // 自動帶出兩張：一張有QA，一張沒有QA
-                    db.push({ line2: partNo, line3: dateNo, isQA: true, printCount: 1 });
-                    db.push({ line2: partNo, line3: dateNo, isQA: false, printCount: 1 });
+                    // 自動分流：一張有QA，一張一般
+                    db.push({ line2: line2_val, line3: line3_val, line4: line4_val, isQA: true, printCount: 1 });
+                    db.push({ line2: line2_val, line3: line3_val, line4: line4_val, isQA: false, printCount: 1 });
                 } else {
-                    db.push({ line2: partNo, line3: dateNo, isQA: false, printCount: 1 });
+                    db.push({ line2: line2_val, line3: line3_val, line4: line4_val, isQA: false, printCount: 1 });
                 }
             }
             saveDB(db);
             document.getElementById('textData2').value = '';
-            alert("模式二進料表匯入完成（已自動分流QA標籤）！");
+            alert("模式二進料表匯入完成！");
         }
 
-        // 【模式三手動新增】
+        // 【模式三：手動新增】
         function parseMode3() {
-            var partNo = document.getElementById('manualPart').value.trim();
-            var dateNo = document.getElementById('manualDate').value.trim();
+            var l2 = document.getElementById('manualL2').value.trim();
+            var l3 = document.getElementById('manualL3').value.trim();
+            var l4 = document.getElementById('manualL4').value.trim();
             var iqc = document.getElementById('manualIqc').value;
-            if(!partNo || !dateNo) { alert("請填寫編號與日期！"); return; }
+            if(!l2 || !l4) { alert("請至少填寫第二行與第四行內容！"); return; }
 
             var db = getDB();
             if(iqc === "有") {
-                db.push({ line2: partNo, line3: dateNo, isQA: true, printCount: 1 });
-                db.push({ line2: partNo, line3: dateNo, isQA: false, printCount: 1 });
+                db.push({ line2: l2, line3: l3, line4: l4, isQA: true, printCount: 1 });
+                db.push({ line2: l2, line3: l3, line4: l4, isQA: false, printCount: 1 });
             } else {
-                db.push({ line2: partNo, line3: dateNo, isQA: false, printCount: 1 });
+                db.push({ line2: l2, line3: l3, line4: l4, isQA: false, printCount: 1 });
             }
             saveDB(db);
-            document.getElementById('manualPart').value = '';
-            document.getElementById('manualDate').value = '';
-            alert("手動資料新增成功！");
+            document.getElementById('manualL2').value = '';
+            document.getElementById('manualL3').value = '';
+            document.getElementById('manualL4').value = '';
+            alert("手動標籤新增成功！");
         }
 
         // 渲染修改清單介面
@@ -238,6 +262,7 @@
                 tr.innerHTML = '<td>' + (i+1) + '</td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line2+'" onchange="updateItem('+i+', \'line2\', this.value)"></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line3+'" onchange="updateItem('+i+', \'line3\', this.value)"></td>' +
+                    '<td><input type="text" class="edit-input" value="'+item.line4+'" onchange="updateItem('+i+', \'line4\', this.value)"></td>' +
                     '<td><select onchange="updateItem('+i+', \'isQA\', this.value === \'true\')">' +
                         '<option value="false" '+( !item.isQA?'selected':'' )+'>一般</option>' +
                         '<option value="true" '+( item.isQA?'selected':'' )+'>QA</option>' +
@@ -267,7 +292,7 @@
             if(confirm("確定要清空整個資料庫？")) { saveDB([]); }
         }
 
-        // 生成列印頁面並呼叫列印
+        // 生成列印頁面並呼跨列印
         function doPrint() {
             var db = getDB();
             var printArea = document.getElementById('printArea');
@@ -285,12 +310,13 @@
                         html += '<div class="page">';
                     }
 
-                    var dateDisplay = item.line3 + (item.isQA ? "  QA" : "");
+                    var lastLineDisplay = item.line4 + (item.isQA ? "  QA" : "");
 
                     html += '<div class="label-cell">' +
-                            '<span class="p-line line-1"></span>' + // 第一行空白留手寫儲位
+                            '<span class="p-line line-1"></span>' + /* 第一行空白手寫儲位 */
                             '<span class="p-line line-2">' + item.line2 + '</span>' +
-                            '<span class="p-line line-3">' + dateDisplay + '</span>' +
+                            '<span class="p-line line-3">' + (item.line3 ? item.line3 : "&nbsp;") + '</span>' +
+                            '<span class="p-line line-4">' + lastLineDisplay + '</span>' +
                             '</div>';
                     cellCounter++;
                 }
@@ -304,3 +330,4 @@
     </script>
 </body>
 </html>
+
