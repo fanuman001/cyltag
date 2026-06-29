@@ -2,308 +2,305 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>A4 2x3 棧板標籤管理與列印系統 (XP離線版)</title>
+    <title>進料棧板標籤多功能管理系統 (XP離線版)</title>
     <style>
-        body {
-            font-family: "新細明體", "MingLiU", Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f6f9;
-            color: #333;
-        }
-        .container {
-            max-width: 950px;
-            margin: 0 auto;
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
+        body { font-family: "新細明體", "MingLiU", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
+        .container { max-width: 1050px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h2 { border-bottom: 2px solid #0056b3; padding-bottom: 10px; color: #0056b3; margin-top: 0; }
-        textarea {
-            width: 100%;
-            height: 150px;
-            margin-bottom: 15px;
-            font-family: monospace;
-            box-sizing: border-box;
-            padding: 10px;
-        }
-        .btn-group { margin-bottom: 20px; }
-        button {
-            padding: 10px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            margin-right: 10px;
-            font-weight: bold;
-        }
+        h3 { color: #333; margin-top: 20px; background: #e9ecef; padding: 6px 10px; border-left: 4px solid #0056b3; }
+        .tabs { display: flex; margin-bottom: 15px; }
+        .tab { padding: 10px 20px; background: #e9ecef; cursor: pointer; border: 1px solid #ccc; border-bottom: none; margin-right: 5px; border-radius: 4px 4px 0 0; }
+        .tab.active { background: white; font-weight: bold; border-top: 3px solid #0056b3; }
+        .tab-content { border: 1px solid #ccc; padding: 15px; background: white; display: none; border-radius: 0 4px 4px 4px; }
+        .tab-content.active { display: block; }
+        textarea { width: 100%; height: 120px; font-family: monospace; box-sizing: border-box; padding: 10px; margin-bottom: 10px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: inline-block; width: 100px; font-weight: bold; }
+        .form-group input, .form-group select { padding: 5px; width: 200px; }
+        .btn-group { margin-top: 15px; margin-bottom: 20px; }
+        button { padding: 10px 20px; font-size: 14px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; margin-right: 10px; font-weight: bold; }
         button:hover { background-color: #0056b3; }
         button.print-btn { background-color: #28a745; }
         button.print-btn:hover { background-color: #218838; }
         button.danger { background-color: #dc3545; }
         button.danger:hover { background-color: #bd2130; }
         
-        /* 歷史資料列表樣式 */
-        .data-list {
-            margin-top: 20px;
-            border-collapse: collapse;
-            width: 100%;
-        }
-        .data-list th, .data-list td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
-        .data-list th { background-color: #e9ecef; }
-        .print-count-input {
-            width: 50px;
-            padding: 4px;
-            text-align: center;
-        }
+        /* 編輯列表樣式 */
+        .data-list { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        .data-list th, .data-list td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
+        .data-list th { background-color: #f1f3f5; }
+        .edit-input { width: 90%; padding: 4px; box-sizing: border-box; }
+        .count-input { width: 45px; padding: 4px; text-align: center; }
 
         /* ==================== 列印專用 A4 2x3 樣式 ==================== */
         @media print {
             body { background: white; padding: 0; }
             .no-print { display: none !important; }
-            
-            .page {
-                width: 210mm;
-                height: 297mm;
-                page-break-after: always;
-                box-sizing: border-box;
-                padding-top: 10mm;   /* 上邊距 */
-                padding-left: 10mm;  /* 左邊距 */
-                overflow: hidden;
-            }
-            
+            .page { width: 210mm; height: 297mm; page-break-after: always; box-sizing: border-box; padding-top: 12mm; padding-left: 10mm; overflow: hidden; }
             /* 2x3 貼紙格局 */
-            .label-cell {
-                width: 92mm;         /* 貼紙寬度 (大約 190mm / 2) */
-                height: 90mm;        /* 貼紙高度 (大約 270mm / 3) */
-                float: left;
-                margin-right: 4mm;   /* 左右貼紙間距 */
-                margin-bottom: 4mm;  /* 上下貼紙間距 */
-                border: 1px dotted #bbb; /* 紅框線或虛線框，裁切完可改成 none */
-                box-sizing: border-box;
-                padding: 15mm 8mm 5mm 8mm; /* 配合大字放大留白 */
-                overflow: hidden;
-            }
-            
-            /* 每列的第二張貼紙去掉右邊距，防止擠下去 */
-            .label-cell:nth-child(2n) {
-                margin-right: 0;
-            }
+            .label-cell { width: 92mm; height: 90mm; float: left; margin-right: 4mm; margin-bottom: 4mm; border: 1px dotted #bbb; box-sizing: border-box; padding: 12mm 6mm 5mm 6mm; overflow: hidden; }
+            .label-cell:nth-child(2n) { margin-right: 0; }
             
             /* 配合照片內容大字排版 */
-            .p-line {
-                display: block;
-                width: 100%;
-                white-space: nowrap;
-                font-weight: bold;
-                color: #000;
-                margin-bottom: 8mm; /* 行距 */
-            }
-            .line-1 { font-size: 26pt; } /* EM-890 RTF3 */
-            .line-2 { font-size: 24pt; } /* 4mil 1/H 1035*2 */
-            .line-3 { font-size: 20pt; } /* 26 6/25 王水欽 4000 */
+            .p-line { display: block; width: 100%; white-space: nowrap; font-weight: bold; color: #000; }
+            .line-1 { height: 22mm; font-size: 24pt; } /* 第一行留白 */
+            .line-2 { height: 24mm; font-size: 28pt; } /* 原料編號 (1-Nn16-U1EA) */
+            .line-3 { height: 24mm; font-size: 26pt; } /* 日期 (26 6/29 QA) */
         }
     </style>
 </head>
 <body>
 
     <div class="container no-print">
-        <h2>A4 2x3 棧板標籤自動重組系統</h2>
+        <h2>棧板標籤自動流轉系統 (1*6 / 進料表 / 手動輸入)</h2>
         
-        <p><strong>1. 請貼上原始文字資料：</strong></p>
-        <textarea id="rawData" placeholder="貼上資料（包含編碼與修改字樣）..."></textarea>
-        
-        <div class="btn-group">
-            <button onclick="processAndSave()">1. 讀取並檢查儲存</button>
-            <button class="print-btn" onclick="renderPrintLabels(); setTimeout(function(){window.print();}, 300);">2. 開始列印設定張數</button>
-            <button class="danger" onclick="clearAllData()">清空記憶庫</button>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab(1)">模式一：貼上直式文字(1*6)</div>
+            <div class="tab" onclick="switchTab(2)">模式二：貼上網頁進料表</div>
+            <div class="tab" onclick="switchTab(3)">模式三：手動逐筆新增</div>
         </div>
 
-        <h3>目前資料庫 (可調整欲列印的張數)</h3>
+        <div id="tab1" class="tab-content active">
+            <p>請貼上第一種原始文字資料（包含「修改」字樣）：</p>
+            <textarea id="textData1" placeholder="1165	260625&#10;王水欽	EM-890&#10;...&#10;7-260529-070 	修改"></textarea>
+            <button onclick="parseMode1()">剖析並匯入</button>
+        </div>
+
+        <div id="tab2" class="tab-content">
+            <p>請直接從系統網頁「複製整個表格」，並貼在下方框內：</p>
+            <textarea id="textData2" placeholder="1	20260629	672...&#10;2	20260629	673	U2618980-1	1-Nn16-U1EA	0930	台燿	4000	徐李淼	有	合格"></textarea>
+            <button onclick="parseMode2()">剖析並匯入</button>
+        </div>
+
+        <div id="tab3" class="tab-content">
+            <div class="form-group">
+                <label>原料編號：</label><input type="text" id="manualPart" placeholder="例如：1-Nn16-U1EA">
+            </div>
+            <div class="form-group">
+                <label>進料日期：</label><input type="text" id="manualDate" placeholder="例如：26 6/29">
+            </div>
+            <div class="form-group">
+                <label>是否IQC/QA：</label>
+                <select id="manualIqc">
+                    <option value="無">無 (產生一張一般標籤)</option>
+                    <option value="有">有 (自動產生一張QA標籤 + 一張一般標籤)</option>
+                </select>
+            </div>
+            <button onclick="parseMode3()">新增至資料庫</button>
+        </div>
+
+        <div class="btn-group">
+            <button class="print-btn" onclick="doPrint()">執行列印設定張數</button>
+            <button class="danger" onclick="clearAllData()">清空記憶資料庫</button>
+        </div>
+
+        <h3>資料庫清單 (內容皆可直接在格內修改，修改後自動存檔)</h3>
         <table class="data-list">
             <thead>
                 <tr>
-                    <th width="15%">主要編碼</th>
-                    <th width="65%">重組預覽 (料號 / 規格 / 日期人員)</th>
-                    <th width="20%">列印張數</th>
+                    <th width="8%">序號</th>
+                    <th width="35%">第二行 (原料編號)</th>
+                    <th width="25%">第三行 (日期資訊)</th>
+                    <th width="12%">含有QA後綴</th>
+                    <th width="10%">列印張數</th>
+                    <th width="10%">管理</th>
                 </tr>
             </thead>
-            <tbody id="storageList">
-                </tbody>
+            <tbody id="storageList"></tbody>
         </table>
     </div>
 
     <div id="printArea"></div>
 
     <script>
-        // 初始化載入
-        window.onload = function() {
-            renderStorageTable();
-        };
+        window.onload = function() { renderTable(); };
 
-        // 解析並儲存
-        function processAndSave() {
-            var rawText = document.getElementById('rawData').value.trim();
-            if (!rawText) { alert("請先貼上資料！"); return; }
+        function switchTab(num) {
+            for(var i=1; i<=3; i++) {
+                document.getElementById('tab'+i).classList.remove('active');
+                document.getElementsByClassName('tab')[i-1].classList.remove('active');
+            }
+            document.getElementById('tab'+num).classList.add('active');
+            document.getElementsByClassName('tab')[num-1].classList.add('active');
+        }
 
-            var lines = rawText.split('\n');
-            var currentLabel = [];
-            var db = JSON.parse(localStorage.getItem('palletLabelDB')) || {};
+        // 共通讀取/儲存核心
+        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB')) || []; }
+        function saveDB(data) { localStorage.setItem('palletSysDB', JSON.stringify(data)); renderTable(); }
 
-            for (var i = 0; i < lines.length; i++) {
-                var line = lines[i].trim();
-                if (line !== "") {
-                    currentLabel.push(lines[i]);
-                }
-                if (line.indexOf("修改") !== -1) {
-                    if (currentLabel.length > 0) {
-                        saveToDB(currentLabel, db);
-                        currentLabel = [];
+        // 格式化日期函數： 20260629 或 260629 -> 26 6/29
+        function formatDateStr(dStr) {
+            dStr = dStr.trim();
+            if(dStr.length === 8) dStr = dStr.substring(2); // 20260629 -> 260629
+            if(dStr.length === 6) {
+                var yy = dStr.substring(0, 2);
+                var mm = parseInt(dStr.substring(2, 4), 10);
+                var dd = parseInt(dStr.substring(4, 6), 10);
+                return yy + " " + mm + "/" + dd;
+            }
+            return dStr;
+        }
+
+        // 【模式一剖析】
+        function parseMode1() {
+            var txt = document.getElementById('textData1').value.trim();
+            if(!txt) return;
+            var lines = txt.split('\n');
+            var currentChunk = [];
+            var db = getDB();
+
+            for(var i=0; i<lines.length; i++) {
+                if(lines[i].trim() !== "") currentChunk.push(lines[i]);
+                if(lines[i].indexOf("修改") !== -1) {
+                    if(currentChunk.length >= 4) {
+                        var r0 = currentChunk[0].split('\t');
+                        var r1 = currentChunk[1].split('\t');
+                        var partNo = (r1[1] || r1[0] || "").trim(); // 抓料號
+                        var dateNo = formatDateStr(r0[1] || "");
+                        
+                        // 檢查重複
+                        var isDup = db.some(function(x){ return x.line2 === partNo; });
+                        if(isDup && !confirm("原料編號【" + partNo + "】已存在，是否重複匯入？")) { currentChunk = []; continue; }
+
+                        db.push({ line2: partNo, line3: dateNo, isQA: false, printCount: 1 });
                     }
+                    currentChunk = [];
                 }
             }
-            if (currentLabel.length > 0) { saveToDB(currentLabel, db); }
-
-            localStorage.setItem('palletLabelDB', JSON.stringify(db));
-            renderStorageTable();
-            document.getElementById('rawData').value = '';
-            alert("資料讀取並比對完成！");
+            saveDB(db);
+            document.getElementById('textData1').value = '';
+            alert("模式一匯入完成！");
         }
 
-        // 資料提取與比對邏輯
-        function saveToDB(labelLines, db) {
-            if (labelLines.length < 7) return; // 資料行數不足則跳過
+        // 【模式二剖析】
+        function parseMode2() {
+            var txt = document.getElementById('textData2').value.trim();
+            if(!txt) return;
+            var lines = txt.split('\n');
+            var db = getDB();
 
-            // 清洗資料（除去 Tab 與空格）
-            var r = labelLines.map(function(l) {
-                return l.split('\t').map(function(p) { return p.trim(); });
-            });
+            for(var i=0; i<lines.length; i++) {
+                var cols = lines[i].split('\t');
+                if(cols.length < 5) continue; 
+                if(isNaN(parseInt(cols[0].trim(), 10))) continue; // 跳過表頭
 
-            // 提取關鍵欄位
-            var code = r[0][0];      // 1165
-            var dateRaw = r[0][1];   // 260625
-            var name = r[1][0];      // 王水欽
-            var partNo = r[1][1];    // EM-890
-            var spec1 = r[2][0];     // 4mil
-            var spec2 = r[2][1];     // 1/H
-            var typeNo = r[3][0];    // RTF3
-            var size = r[3][1];      // 1035*2
-            var emcCount = r[5][1];  // 4000
+                var dateNo = formatDateStr(cols[1]); // 第二欄 日期
+                var partNo = cols[4].trim();         // 第五欄 原料編號
+                var iqcStatus = cols.length >= 11 ? cols[10].trim() : cols[cols.length-3].trim(); // 是否IQC欄位
 
-            if (!code) return;
+                // 檢查重複
+                var isDup = db.some(function(x){ return x.line2 === partNo; });
+                if(isDup && !confirm("原料編號【" + partNo + "】已存在，是否重複匯入？")) { continue; }
 
-            // 格式化日期： 260625 -> 26 6/25
-            var formattedDate = dateRaw;
-            if (dateRaw && dateRaw.length === 6) {
-                var yy = dateRaw.substring(0, 2);
-                var mm = parseInt(dateRaw.substring(2, 4), 10);
-                var dd = parseInt(dateRaw.substring(4, 6), 10);
-                formattedDate = yy + " " + mm + "/" + dd;
+                if(iqcStatus === "有") {
+                    // 自動帶出兩張：一張有QA，一張沒有QA
+                    db.push({ line2: partNo, line3: dateNo, isQA: true, printCount: 1 });
+                    db.push({ line2: partNo, line3: dateNo, isQA: false, printCount: 1 });
+                } else {
+                    db.push({ line2: partNo, line3: dateNo, isQA: false, printCount: 1 });
+                }
             }
-
-            // 組裝成您要求的 3 行格式
-            var parsedObj = {
-                code: code,
-                line1: partNo + " " + typeNo,               // EM-890 RTF3
-                line2: spec1 + " " + spec2 + " " + size,   // 4mil 1/H 1035*2
-                line3: formattedDate + " " + name + " " + emcCount, // 26 6/25 王水欽 4000
-                printCount: 1 // 預設列印 1 張
-            };
-
-            // 重複檢查
-            if (db[code]) {
-                var isOverwrite = confirm("編碼【" + code + "】已存在！\n\n是否要覆蓋舊資料？");
-                if (!isOverwrite) return;
-            }
-
-            db[code] = parsedObj;
+            saveDB(db);
+            document.getElementById('textData2').value = '';
+            alert("模式二進料表匯入完成（已自動分流QA標籤）！");
         }
 
-        // 更新表格列表，允許調整張數
-        function renderStorageTable() {
-            var db = JSON.parse(localStorage.getItem('palletLabelDB')) || {};
+        // 【模式三手動新增】
+        function parseMode3() {
+            var partNo = document.getElementById('manualPart').value.trim();
+            var dateNo = document.getElementById('manualDate').value.trim();
+            var iqc = document.getElementById('manualIqc').value;
+            if(!partNo || !dateNo) { alert("請填寫編號與日期！"); return; }
+
+            var db = getDB();
+            if(iqc === "有") {
+                db.push({ line2: partNo, line3: dateNo, isQA: true, printCount: 1 });
+                db.push({ line2: partNo, line3: dateNo, isQA: false, printCount: 1 });
+            } else {
+                db.push({ line2: partNo, line3: dateNo, isQA: false, printCount: 1 });
+            }
+            saveDB(db);
+            document.getElementById('manualPart').value = '';
+            document.getElementById('manualDate').value = '';
+            alert("手動資料新增成功！");
+        }
+
+        // 渲染修改清單介面
+        function renderTable() {
+            var db = getDB();
             var tbody = document.getElementById('storageList');
             tbody.innerHTML = '';
-            var sortedKeys = Object.keys(db).sort();
 
-            if (sortedKeys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" style="color:gray; text-align:center;">目前無儲存資料</td></tr>';
-                return;
-            }
+            for(var i=0; i<db.length; i++) {
+                var item = db[i];
+                var tr = document.createElement('tr');
 
-            for (var i = 0; i < sortedKeys.length; i++) {
-                var key = sortedKeys[i];
-                var item = db[key];
-                var row = document.createElement('tr');
-
-                row.innerHTML = '<td><strong>' + item.code + '</strong></td>' +
-                    '<td><small>❶ ' + item.line1 + '<br>❷ ' + item.line2 + '<br>❸ ' + item.line3 + '</small></td>' +
-                    '<td><input type="number" class="print-count-input" min="0" value="' + item.printCount + '" onchange="updateCount(\''+key+'\', this.value)"> 張</td>';
+                tr.innerHTML = '<td>' + (i+1) + '</td>' +
+                    '<td><input type="text" class="edit-input" value="'+item.line2+'" onchange="updateItem('+i+', \'line2\', this.value)"></td>' +
+                    '<td><input type="text" class="edit-input" value="'+item.line3+'" onchange="updateItem('+i+', \'line3\', this.value)"></td>' +
+                    '<td><select onchange="updateItem('+i+', \'isQA\', this.value === \'true\')">' +
+                        '<option value="false" '+( !item.isQA?'selected':'' )+'>一般</option>' +
+                        '<option value="true" '+( item.isQA?'selected':'' )+'>QA</option>' +
+                    '</select></td>' +
+                    '<td><input type="number" class="count-input" min="0" value="'+item.printCount+'" onchange="updateItem('+i+', \'printCount\', parseInt(this.value,10)||0)"></td>' +
+                    '<td><button class="danger" style="padding:3px 8px; font-size:11px;" onclick="deleteItem('+i+')">刪除</button></td>';
                 
-                tbody.appendChild(row);
+                tbody.appendChild(tr);
             }
         }
 
-        // 修改張數時即時同步
-        function updateCount(key, val) {
-            var db = JSON.parse(localStorage.getItem('palletLabelDB')) || {};
-            if (db[key]) {
-                db[key].printCount = parseInt(val, 10) || 0;
-                localStorage.setItem('palletLabelDB', JSON.stringify(db));
+        function updateItem(idx, field, value) {
+            var db = getDB();
+            db[idx][field] = value;
+            localStorage.setItem('palletSysDB', JSON.stringify(db));
+        }
+
+        function deleteItem(idx) {
+            if(confirm("確定刪除第 " + (idx+1) + " 筆資料嗎？")) {
+                var db = getDB();
+                db.splice(idx, 1);
+                saveDB(db);
             }
         }
 
-        // 建立符合 2x3 規格的列印版面
-        function renderPrintLabels() {
-            var db = JSON.parse(localStorage.getItem('palletLabelDB')) || {};
-            var sortedKeys = Object.keys(db).sort();
+        function clearAllData() {
+            if(confirm("確定要清空整個資料庫？")) { saveDB([]); }
+        }
+
+        // 生成列印頁面並呼叫列印
+        function doPrint() {
+            var db = getDB();
             var printArea = document.getElementById('printArea');
             printArea.innerHTML = '';
-
+            
             var html = '';
-            var totalLabelsInPage = 0;
-            var labelsPerPage = 6; // 一頁 2x3 = 6 張
+            var cellCounter = 0;
+            var labelsPerPage = 6;
 
-            for (var i = 0; i < sortedKeys.length; i++) {
-                var item = db[sortedKeys[i]];
-                
-                // 根據使用者設定的「列印張數」重複複製該標籤
-                for (var c = 0; c < item.printCount; c++) {
-                    if (totalLabelsInPage % labelsPerPage === 0) {
-                        if (totalLabelsInPage > 0) html += '</div>'; // 關閉上一頁
+            for(var i=0; i<db.length; i++) {
+                var item = db[i];
+                for(var c=0; c<item.printCount; c++) {
+                    if(cellCounter % labelsPerPage === 0) {
+                        if(cellCounter > 0) html += '</div>';
                         html += '<div class="page">';
                     }
 
-                    html += '<div class="label-cell">' +
-                            '<span class="p-line line-1">' + item.line1 + '</span>' +
-                            '<span class="p-line line-2">' + item.line2 + '</span>' +
-                            '<span class="p-line line-3">' + item.line3 + '</span>' +
-                            '</div>';
+                    var dateDisplay = item.line3 + (item.isQA ? "  QA" : "");
 
-                    totalLabelsInPage++;
+                    html += '<div class="label-cell">' +
+                            '<span class="p-line line-1"></span>' + // 第一行空白留手寫儲位
+                            '<span class="p-line line-2">' + item.line2 + '</span>' +
+                            '<span class="p-line line-3">' + dateDisplay + '</span>' +
+                            '</div>';
+                    cellCounter++;
                 }
             }
-
-            if (totalLabelsInPage > 0) { html += '</div>'; }
+            if(cellCounter > 0) html += '</div>';
             printArea.innerHTML = html;
-        }
 
-        // 清空記憶庫
-        function clearAllData() {
-            if (confirm("確定要清空所有已儲存的標籤資料嗎？")) {
-                localStorage.removeItem('palletLabelDB');
-                renderStorageTable();
-                document.getElementById('printArea').innerHTML = '';
-            }
+            if(cellCounter === 0) { alert("沒有任何要列印的標籤（張數皆為0）"); return; }
+            window.print();
         }
     </script>
 </body>
 </html>
-
