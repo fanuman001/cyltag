@@ -13,7 +13,7 @@
         .tab.active { background: white; font-weight: bold; border-top: 3px solid #0056b3; }
         .tab-content { border: 1px solid #ccc; padding: 15px; background: white; display: none; border-radius: 0 4px 4px 4px; }
         .tab-content.active { display: block; }
-        textarea { width: 100%; height: 180px; font-family: monospace; box-sizing: border-box; padding: 10px; margin-bottom: 10px; }
+        textarea { width: 100%; height: 220px; font-family: monospace; box-sizing: border-box; padding: 10px; margin-bottom: 10px; font-size: 13px; line-height: 1.5; }
         .form-group { margin-bottom: 10px; }
         .form-group label { display: inline-block; width: 140px; font-weight: bold; }
         .form-group input, .form-group select { padding: 5px; width: 250px; }
@@ -34,7 +34,7 @@
 
         #printArea { background: #666; padding: 10px; display: none; }
 
-        /* ==================== 列印專用 A4 2x3 留邊 0.2CM 貼紙 9.8x9.0CM 樣式 ==================== */
+        /* ==================== 列印專用 A4 2x3 留邊 0.2CM 貼紙樣式 (適配 344775.jpg 比例) ==================== */
         @media print {
             html, body { background: white; margin: 0 !important; padding: 0 !important; width: 210mm; height: 297mm; }
             .no-print { display: none !important; }
@@ -43,29 +43,30 @@
             .page { width: 210mm; height: 297mm; page-break-after: always; box-sizing: border-box; overflow: hidden; padding: 0.2cm; margin: 0; }
             
             /* 單張貼紙 寬98mm 高90mm */
-            .label-cell { width: 98mm; height: 90mm; float: left; margin: 0; border: none; box-sizing: border-box; padding: 4mm 5mm; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+            .label-cell { width: 98mm; height: 90mm; float: left; margin: 0; border: none; box-sizing: border-box; padding: 6mm 5mm; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
             
-            /* 調整左右對稱間距 保持中間有 0.2cm (2mm) 左右空白間隙 */
+            /* 左右對稱間距：保持中間有 0.2cm (2mm) 空白間隙 */
             .label-cell:nth-child(2n+1) { margin-right: 2mm; }
             .label-cell:nth-child(2n) { margin-left: 2mm; }
 
             .svg-line-container { width: 100%; height: 100%; display: block; overflow: hidden; }
             
-            .m1-h1 { height: 15mm; } 
-            .m1-h2 { height: 21mm; } 
-            .m1-h3 { height: 21mm; } 
-            .m1-h4 { height: 21mm; } 
+            /* 針對 344775.jpg 格式的文字高度完美比例劃分 */
+            .m1-h1 { height: 12mm; } 
+            .m1-h2 { height: 22mm; } 
+            .m1-h3 { height: 22mm; } 
+            .m1-h4 { height: 24mm; } 
 
-            .m2-h1 { height: 22mm; } 
-            .m2-h2 { height: 30mm; } 
-            .m2-h3 { height: 30mm; } 
+            .m2-h1 { height: 20mm; } 
+            .m2-h2 { height: 28mm; } 
+            .m2-h3 { height: 32mm; } 
         }
     </style>
 </head>
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (智慧防重字體優化版)</h2>
+        <h2>棧板標籤自動流轉系統 (對齊 344775.jpg 格式版)</h2>
         
         <div class="config-panel">
             <label style="cursor: pointer;">
@@ -80,8 +81,8 @@
         </div>
 
         <div id="tab1" class="tab-content active">
-            <p>請貼上非常備原始文字資料（依開頭流水編號判斷重複）：</p>
-            <textarea id="textData1" placeholder="7-260429-026	1182260629&#10;劉浚銘	TU-862HF..."></textarea>
+            <p>請貼上非常備原始文字資料（本版本針對第四行进行了智慧優化提取）：</p>
+            <textarea id="textData1" placeholder="直接複製貼上多個區塊文字..."></textarea>
             <button onclick="parseMode1()">剖析並匯入</button>
         </div>
 
@@ -103,13 +104,13 @@
                 <label>比對唯一編號：</label><input type="text" id="manualPureCode" placeholder="如：7-260429-026 或 原料編號">
             </div>
             <div class="form-group">
-                <label>第二行內容 (空白分隔)：</label><input type="text" id="manualL2" placeholder="如：EM-896K2 HVLP4">
+                <label>第二行顯示內容：</label><input type="text" id="manualL2" placeholder="如：EM-890 RTF3">
             </div>
             <div id="manualL3Group" class="form-group">
-                <label>第三行內容 (空白分隔)：</label><input type="text" id="manualL3" placeholder="如：4.5mil H/H 1035*2">
+                <label>第三行顯示內容：</label><input type="text" id="manualL3" placeholder="如：4mil 1/H 1035*2">
             </div>
             <div class="form-group">
-                <label id="manualL4Label">第四行內容 (空白分隔)：</label><input type="text" id="manualL4" placeholder="如：26 6/26 王水欽 60 7-260426-060">
+                <label id="manualL4Label">第四行顯示內容：</label><input type="text" id="manualL4" placeholder="如：26 6/29 王水欽 4000">
             </div>
             <div class="form-group">
                 <label>是否IQC/QA：</label>
@@ -173,9 +174,10 @@
         function getDB() { return JSON.parse(localStorage.getItem('palletSysDB')) || []; }
         function saveDB(data) { localStorage.setItem('palletSysDB', JSON.stringify(data)); renderTable(); }
 
+        // 精準轉換日期為 '26 6/29' 格式
         function formatDateStr(dStr) {
             dStr = dStr.trim();
-            if(dStr.length === 8) dStr = dStr.substring(2);
+            if(dStr.length === 8) dStr = dStr.substring(2); // 去除 20
             if(dStr.length === 6) {
                 var yy = dStr.substring(0, 2);
                 var mm = parseInt(dStr.substring(2, 4), 10);
@@ -194,85 +196,111 @@
             return -1;
         }
 
-        // 【非常備剖析】
+        // 【非常備剖析核心】完全適配多行非標準間隔、精準抓取第四行要素
         function parseMode1() {
             var txt = document.getElementById('textData1').value.trim();
             if(!txt) return;
-            var lines = txt.split('\n');
-            var currentChunk = [];
+            
+            // 根據兩個以上的換行或是單獨一行的空格切分出大區塊
+            var blocks = txt.split(/\n\s*\n/);
             var db = getDB();
             var showAlert = document.getElementById('enableAlert').checked;
+            var successCount = 0;
 
-            for(var i=0; i<lines.length; i++) {
-                if(lines[i].trim() !== "") currentChunk.push(lines[i]);
-                if(lines[i].indexOf("修改") !== -1 || i === lines.length - 1) {
-                    if(currentChunk.length >= 5) {
-                        var r = currentChunk.map(function(l) {
-                            var parts = l.split('\t');
-                            if(parts.length < 2) parts = l.split(/\s+/); 
-                            return parts.map(function(p) { return p.trim(); });
-                        });
+            for(var b=0; b<blocks.length; b++) {
+                var blockText = blocks[b].trim();
+                if(!blockText) continue;
 
-                        var customTrackingCode = r[0][0] || ""; 
-                        var pureSerialNo = r[0][1] || "";        
-                        
-                        if(pureSerialNo.indexOf("修改") !== -1) {
-                            pureSerialNo = pureSerialNo.replace("修改", "").trim();
+                var rawLines = blockText.split('\n');
+                var lines = [];
+                for(var j=0; j<rawLines.length; j++){
+                    if(rawLines[j].trim() !== "") lines.push(rawLines[j].trim());
+                }
+
+                // 一個標準項目區塊通常包含 6~8 行
+                if(lines.length >= 4) {
+                    var line1 = lines[0]; // 追蹤碼、單號層
+                    var line2 = lines[1]; // 姓名 與 料號層
+                    var line3 = lines[2]; // 規格1
+                    var line4 = lines[3]; // 規格2
+
+                    // 1. 萃取唯一判定碼與日期代碼
+                    var trackingCode = "";
+                    var serialNo = "";
+                    var matchModify = line1.match(/(?:修改)?(\1*\d{10})/);
+                    if(matchModify) {
+                        trackingCode = matchModify[1]; // 得到 1181260626 或 1183260629
+                        serialNo = line1.split("修改")[0].trim();
+                    } else {
+                        trackingCode = line1;
+                        serialNo = line1;
+                    }
+
+                    // 萃取日期字串
+                    var dateStr = "26 6/29"; // 預設安全值
+                    if(trackingCode.length >= 10) {
+                        var dPart = trackingCode.substring(4, 10); // 抓取 260626 或 260629
+                        dateStr = formatDateStr(dPart);
+                    }
+
+                    // 2. 拆解名字與料號
+                    var name = "";
+                    var partNo = "";
+                    var nameMatch = line2.match(/^([\u4e00-\u9fa5]{2,4})/);
+                    if(nameMatch) {
+                        name = nameMatch[1];
+                        partNo = line2.substring(name.length).trim();
+                    } else {
+                        partNo = line2;
+                    }
+
+                    // 3. 尋找並萃取 EMC 數量 (例如從 "EMC4000" 或 "4000U2635916" 中撈出 4000)
+                    var countVal = "60"; // 預設值
+                    for(var k=0; k<lines.length; k++) {
+                        var emcMatch = lines[k].match(/EMC(\d+)/i);
+                        if(emcMatch) {
+                            countVal = emcMatch[1];
+                            break;
                         }
-                        if(!pureSerialNo && customTrackingCode.indexOf("修改") !== -1) {
-                            var fixParts = currentChunk[0].split("修改");
-                            if(fixParts.length > 1) pureSerialNo = fixParts[1].trim();
-                        }
-
-                        var name         = r[1][0] || "";
-                        var purePartNo   = r[1][1] || ""; 
-                        var spec1        = r[2][0] || ""; 
-                        var spec2        = r[2][1] || ""; 
-                        var typeNo       = r[3][0] || ""; 
-                        var size         = r[3][1] || ""; 
-                        
-                        var emcCount = "";
-                        for(var k=4; k<r.length; k++) {
-                            if(r[k][0] && r[k][0].indexOf('U') !== -1) {
-                                var matchU = r[k][0].match(/^(\d+)U/);
-                                if(matchU) { emcCount = matchU[1]; break; }
-                            }
-                        }
-
-                        var line2_val = purePartNo + " " + typeNo; 
-                        var line3_val = spec1 + " " + spec2 + " " + size;
-                        
-                        var datePart = "";
-                        if(pureSerialNo.length >= 6) {
-                            datePart = pureSerialNo.substring(pureSerialNo.length - 6);
-                        }
-                        var formattedDate = datePart ? formatDateStr(datePart) : "26 6/29";
-
-                        // 特殊修正規則：當偵測到特定錯誤追蹤碼及人員時，第四行強制更正為指定標準格式
-                        var line4_val = "";
-                        if (customTrackingCode.indexOf("1183260629") !== -1 || txt.indexOf("1183260629") !== -1 || pureSerialNo.indexOf("1183260629") !== -1) {
-                            line4_val = "26 6/29 王水欽 4000";
-                        } else {
-                            line4_val = formattedDate + " " + name + " " + emcCount + " " + customTrackingCode;
-                        }
-
-                        var uniqueKey = customTrackingCode ? customTrackingCode : pureSerialNo;
-                        var dupIdx = checkDuplicateKey(db, 'mode1', uniqueKey);
-                        if(dupIdx !== -1) {
-                            db[dupIdx].printCount = 0; 
-                            if(showAlert) {
-                                alert("非常備：流水號【" + uniqueKey + "】重複，已自動將舊單歸 0。");
-                            }
-                        } else {
-                            db.push({ mode: 'mode1', pureCode: uniqueKey, line2: line2_val, line3: line3_val, line4: line4_val, isQA: false, printCount: 1 });
+                        var uMatch = lines[k].match(/^(\d+)U/i);
+                        if(uMatch) {
+                            countVal = uMatch[1];
+                            break;
                         }
                     }
-                    currentChunk = [];
+
+                    // 4. 組合輸出欄位 (完美適配 344775.jpg 比例)
+                    var line2_display = partNo + " " + line4; // 料號 + HVLP4 1035*2 拼在第二行
+                    var line3_display = line3;               // 規格 (如 4mil 1/H) 放在第三行
+                    var line4_display = dateStr + " " + name + " " + countVal; // 26 6/29 王水欽 4000 放在第四行
+
+                    var uniqueKey = serialNo ? serialNo : trackingCode;
+                    if(uniqueKey === "") uniqueKey = "TEMP_" + Math.random().toString(36).substr(2, 5);
+
+                    var dupIdx = checkDuplicateKey(db, 'mode1', uniqueKey);
+                    if(dupIdx !== -1) {
+                        db[dupIdx].printCount = 0; 
+                        if(showAlert) {
+                            alert("非常備重疊提醒：單號【" + uniqueKey + "】重疊，舊項目列印數已自動歸零，更新為新內容。");
+                        }
+                    }
+                    
+                    db.push({
+                        mode: 'mode1',
+                        pureCode: uniqueKey,
+                        line2: line2_display,
+                        line3: line3_display,
+                        line4: line4_display,
+                        isQA: false,
+                        printCount: 1
+                    });
+                    successCount++;
                 }
             }
+            
             saveDB(db);
             document.getElementById('textData1').value = '';
-            alert("非常備資料解析完成！");
+            alert("已成功智慧剖析 " + successCount + " 筆非常備棧板資料！");
         }
 
         // 【常備基板剖析】
@@ -334,9 +362,7 @@
             }
             saveDB(db);
             document.getElementById('textData2').value = '';
-            if(importCount > 0) {
-                alert("常備基板智慧處理完成！");
-            }
+            if(importCount > 0) alert("常備基板智慧處理完成！");
         }
 
         function parseMode3() {
@@ -405,6 +431,7 @@
 
         function clearAllData() { if(confirm("確定要清空整個資料庫？")) { saveDB([]); } }
 
+        // 【智慧 SVG 線條渲染】完整還原 344775.jpg 的極粗/細字體對比結構
         function makeSemanticSvg(item, rowNum, alignMode, extraQA) {
             var textAnchor = (alignMode === "left") ? "start" : "middle";
             var xPos = (alignMode === "left") ? "0%" : "50%";
@@ -414,35 +441,31 @@
 
             if (item.mode === 'mode1') {
                 if (rowNum === 2) {
-                    var tokens = item.line2.split(/\s+/);
-                    if(tokens.length >= 2) {
-                        segments.push({ text: tokens[0] + " ", isBold: true });
-                        segments.push({ text: tokens.slice(1).join(" "), isBold: false });
-                    } else {
-                        segments.push({ text: item.line2, isBold: true });
-                    }
+                    // 第二行（如：EM-890 RTF3）全部加粗
+                    segments.push({ text: item.line2, isBold: true });
                 } 
                 else if (rowNum === 3) {
-                    var tokens = item.line3.split(/\s+/);
-                    if(tokens.length >= 2) {
-                        segments.push({ text: tokens[0] + " " + (tokens[1]||"") + " ", isBold: true });
-                        segments.push({ text: tokens.slice(2).join(" "), isBold: false });
-                    } else {
-                        segments.push({ text: item.line3, isBold: true });
-                    }
+                    // 第三行（如：4mil 1/H 1035*2）全部加粗
+                    segments.push({ text: item.line3, isBold: true });
                 } 
                 else if (rowNum === 4) {
+                    // 第四行對齊 344775.jpg (日期粗體、姓名細體、數量粗體)
                     var tokens = item.line4.split(/\s+/); 
-                    if(tokens.length >= 2) {
-                        segments.push({ text: tokens[0] + " ", isBold: false });
-                        if(tokens[1]) segments.push({ text: tokens[1] + " ", isBold: true });
-                        
-                        var remainTokens = tokens.slice(2);
-                        if(remainTokens.length > 0) {
-                            segments.push({ text: remainTokens.join(" ") + " ", isBold: false });
+                    if(tokens.length >= 3) {
+                        // tokens[0]+tokens[1] = "26 6/29" (粗體)
+                        segments.push({ text: tokens[0] + " " + tokens[1] + "  ", isBold: true });
+                        // tokens[2] = "王水欽" (細體)
+                        segments.push({ text: tokens[2] + " ", isBold: false });
+                        // 其餘為數量 = "4000" (粗體)
+                        var remainTokens = tokens.slice(3).join(" ");
+                        if(remainTokens) {
+                            segments.push({ text: " " + remainTokens, isBold: true });
                         }
+                    } else if(tokens.length === 2) {
+                        segments.push({ text: tokens[0] + " ", isBold: true });
+                        segments.push({ text: tokens[1], isBold: false });
                     } else {
-                        segments.push({ text: item.line4 + " ", isBold: false });
+                        segments.push({ text: item.line4, isBold: true });
                     }
                 }
             } 
@@ -453,12 +476,11 @@
                 else if (rowNum === 3) {
                     var tokens = item.line4.split(/\s+/); 
                     if(tokens.length >= 2) {
-                        segments.push({ text: tokens[0] + " ", isBold: false });
-                        segments.push({ text: tokens[1] + " ", isBold: true });
+                        segments.push({ text: tokens[0] + " " + tokens[1], isBold: true });
                         var remain = tokens.slice(2).join(" ");
                         if(remain) segments.push({ text: " " + remain, isBold: false });
                     } else {
-                        segments.push({ text: item.line4, isBold: false });
+                        segments.push({ text: item.line4, isBold: true });
                     }
                 }
             }
@@ -468,7 +490,7 @@
             }
 
             var fullTextLen = segments.map(function(s){ return s.text; }).join("").length;
-            if (fullTextLen > 11) {
+            if (fullTextLen > 12) {
                 aspectRatio = (alignMode === "left") ? "xMinYMid meet" : "xMidYMid meet";
             }
 
@@ -476,7 +498,8 @@
             segments.forEach(function(seg) {
                 if(!seg.text) return;
                 if(seg.isBold) {
-                    tspanHtml += '<tspan font-weight="900" stroke-width="0.38" stroke="#000" fill="#000">' + seg.text + '</tspan>';
+                    // 運用 SVG 特有的 stroke 屬性達成雙重加粗，完美還原相片字體
+                    tspanHtml += '<tspan font-weight="900" stroke-width="0.45" stroke="#000" fill="#000">' + seg.text + '</tspan>';
                 } else {
                     tspanHtml += '<tspan font-weight="normal" stroke-width="0" fill="#000">' + seg.text + '</tspan>';
                 }
