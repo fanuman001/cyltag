@@ -2,10 +2,10 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>進料棧板標籤多功能管理系統 (智慧防重字體優化版)</title>
+    <title>進料棧板標籤多功能管理系統 (100%精準切割對齊版)</title>
     <style>
         body { font-family: "SimHei", "黑體", "新細明體", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
-        .container { max-width: 1050px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h2 { border-bottom: 2px solid #0056b3; padding-bottom: 10px; color: #0056b3; margin-top: 0; }
         h3 { color: #333; margin-top: 20px; background: #e9ecef; padding: 6px 10px; border-left: 4px solid #0056b3; }
         .tabs { display: flex; margin-bottom: 15px; }
@@ -13,7 +13,7 @@
         .tab.active { background: white; font-weight: bold; border-top: 3px solid #0056b3; }
         .tab-content { border: 1px solid #ccc; padding: 15px; background: white; display: none; border-radius: 0 4px 4px 4px; }
         .tab-content.active { display: block; }
-        textarea { width: 100%; height: 220px; font-family: monospace; box-sizing: border-box; padding: 10px; margin-bottom: 10px; font-size: 13px; line-height: 1.5; }
+        textarea { width: 100%; height: 250px; font-family: monospace; box-sizing: border-box; padding: 10px; margin-bottom: 10px; font-size: 13px; line-height: 1.5; }
         .form-group { margin-bottom: 10px; }
         .form-group label { display: inline-block; width: 140px; font-weight: bold; }
         .form-group input, .form-group select { padding: 5px; width: 250px; }
@@ -31,10 +31,11 @@
         .edit-input { width: 95%; padding: 4px; box-sizing: border-box; }
         .count-input { width: 45px; padding: 4px; text-align: center; }
         .config-panel { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; font-weight: bold; }
+        .alert-row { background-color: #f8d7da !important; color: #721c24; }
 
         #printArea { background: #666; padding: 10px; display: none; }
 
-        /* ==================== 列印專用 A4 2x3 留邊 0.2CM 貼紙樣式 (適配 344775.jpg 比例) ==================== */
+        /* ==================== A4 2x3 貼紙排版縮放區 ==================== */
         @media print {
             html, body { background: white; margin: 0 !important; padding: 0 !important; width: 210mm; height: 297mm; }
             .no-print { display: none !important; }
@@ -42,20 +43,17 @@
             
             .page { width: 210mm; height: 297mm; page-break-after: always; box-sizing: border-box; overflow: hidden; padding: 0.2cm; margin: 0; }
             
-            /* 單張貼紙 寬98mm 高90mm */
             .label-cell { width: 98mm; height: 90mm; float: left; margin: 0; border: none; box-sizing: border-box; padding: 6mm 5mm; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
             
-            /* 左右對稱間距：保持中間有 0.2cm (2mm) 空白間隙 */
             .label-cell:nth-child(2n+1) { margin-right: 2mm; }
             .label-cell:nth-child(2n) { margin-left: 2mm; }
 
             .svg-line-container { width: 100%; height: 100%; display: block; overflow: hidden; }
             
-            /* 針對 344775.jpg 格式的文字高度完美比例劃分 */
-            .m1-h1 { height: 12mm; } 
-            .m1-h2 { height: 22mm; } 
-            .m1-h3 { height: 22mm; } 
-            .m1-h4 { height: 24mm; } 
+            .m1-h1 { height: 10mm; } 
+            .m1-h2 { height: 23mm; } 
+            .m1-h3 { height: 23mm; } 
+            .m1-h4 { height: 26mm; } 
 
             .m2-h1 { height: 20mm; } 
             .m2-h2 { height: 28mm; } 
@@ -66,24 +64,24 @@
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (對齊 344775.jpg 格式版)</h2>
+        <h2>棧板標籤自動流轉系統 (100%精準切割版)</h2>
         
         <div class="config-panel">
             <label style="cursor: pointer;">
-                <input type="checkbox" id="enableAlert" checked> 當偵測到早下午重複項目時，顯示彈窗提示（若取消勾選，系統會直接靜態將舊單歸0並補進新單）
+                <input type="checkbox" id="enableAlert" checked> 當偵測到序號、原料重複項目時，顯示彈窗提示並將舊單自動歸 0。
             </label>
         </div>
 
         <div class="tabs">
-            <div class="tab active" onclick="switchTab(1)">非常備 (模式一：貼上直式文字)</div>
-            <div class="tab" onclick="switchTab(2)">常備基板 (模式二：貼上網頁進料表)</div>
+            <div class="tab active" onclick="switchTab(1)">非常備 (模式一：大範圍直式複製)</div>
+            <div class="tab" onclick="switchTab(2)">常備基板 (模式二：常備表格網頁)</div>
             <div class="tab" onclick="switchTab(3)">模式三：手動逐筆新增</div>
         </div>
 
         <div id="tab1" class="tab-content active">
-            <p>請貼上非常備原始文字資料（本版本針對第四行进行了智慧優化提取）：</p>
-            <textarea id="textData1" placeholder="直接複製貼上多個區塊文字..."></textarea>
-            <button onclick="parseMode1()">剖析並匯入</button>
+            <p>請直接將非常備資料整段複製貼上（系統將根據 10 碼單號自動拆分，完美應對黏字）：</p>
+            <textarea id="textData1" placeholder="貼上包含 1173260626... 的原始串流資料"></textarea>
+            <button onclick="parseMode1()">精準剖析並匯入</button>
         </div>
 
         <div id="tab2" class="tab-content">
@@ -96,27 +94,37 @@
             <div class="form-group">
                 <label>使用版型格式：</label>
                 <select id="manualMode" onchange="toggleManualInputs()">
-                    <option value="mode1">非常備版型 (4行：留白/料號/規格/日期人員數量追蹤碼)</option>
-                    <option value="mode2">常備基板版型 (3行：留白/編號/日期碼)</option>
+                    <option value="mode1">非常備版型</option>
+                    <option value="mode2">常備基板版型</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>比對唯一編號：</label><input type="text" id="manualPureCode" placeholder="如：7-260429-026 或 原料編號">
+                <label>比對唯一編號：</label><input type="text" id="manualPureCode" placeholder="如編號或原料編號">
             </div>
             <div class="form-group">
-                <label>第二行顯示內容：</label><input type="text" id="manualL2" placeholder="如：EM-890 RTF3">
+                <label>第二行顯示內容：</label><input type="text" id="manualL2" placeholder="EM-892K2a HVLP3">
             </div>
             <div id="manualL3Group" class="form-group">
-                <label>第三行顯示內容：</label><input type="text" id="manualL3" placeholder="如：4mil 1/H 1035*2">
+                <label>第三行顯示內容：</label><input type="text" id="manualL3" placeholder="3mil 1/1 1078*1">
             </div>
             <div class="form-group">
-                <label id="manualL4Label">第四行顯示內容：</label><input type="text" id="manualL4" placeholder="如：26 6/29 王水欽 4000">
+                <label id="manualL4Label">第四行顯示內容：</label><input type="text" id="manualL4" placeholder="26 6/26 劉浚銘 50">
+            </div>
+            <div class="form-group">
+                <label>微型小字追蹤碼：</label><input type="text" id="manualSubTrack" placeholder="7-251022-054 (選填)">
+            </div>
+            <div class="form-group">
+                <label>數量異常紅字：</label>
+                <select id="manualIsErr">
+                    <option value="false">正常 (黑色)</option>
+                    <option value="true">異常 (紅色)</option>
+                </select>
             </div>
             <div class="form-group">
                 <label>是否IQC/QA：</label>
                 <select id="manualIqc">
-                    <option value="false">無 (全部皆為一般標籤)</option>
-                    <option value="true">有 (首張自動帶 QA 字樣)</option>
+                    <option value="false">無 (一般標籤)</option>
+                    <option value="true">有 (首張自動帶 QA)</option>
                 </select>
             </div>
             <button onclick="parseMode3()">新增至資料庫</button>
@@ -127,17 +135,17 @@
             <button class="danger" onclick="clearAllData()">清空記憶資料庫</button>
         </div>
 
-        <h3>資料庫清單 (已開啟用印張數動態控制)</h3>
+        <h3>資料庫清單 (異常件自動紅底標記)</h3>
         <table class="data-list">
             <thead>
                 <tr>
                     <th width="4%">序</th>
-                    <th width="12%">版型</th>
-                    <th width="15%">比對判定編號</th>
-                    <th width="20%">第二行顯示內容</th>
-                    <th width="20%">第三行顯示內容</th>
-                    <th width="17%">第四行顯示內容</th>
-                    <th width="6%">首張QA</th>
+                    <th width="10%">版型</th>
+                    <th width="13%">比對判定編號</th>
+                    <th width="18%">第二行顯示 (料號+銅箔種類)</th>
+                    <th width="18%">第三行顯示 (厚度+銅箔尺寸)</th>
+                    <th width="18%">第四行顯示 (日期 人名 數量)</th>
+                    <th width="11%">微型追蹤碼</th>
                     <th width="4%">張數</th>
                     <th width="4%">管理</th>
                 </tr>
@@ -164,20 +172,19 @@
             var m = document.getElementById('manualMode').value;
             if(m === 'mode1') {
                 document.getElementById('manualL3Group').style.display = 'block';
-                document.getElementById('manualL4Label').innerText = "第四行內容 (空白分隔)：";
+                document.getElementById('manualL4Label').innerText = "第四行內容：";
             } else {
                 document.getElementById('manualL3Group').style.display = 'none';
-                document.getElementById('manualL4Label').innerText = "第三行內容 (空白分隔)：";
+                document.getElementById('manualL4Label').innerText = "第三行內容：";
             }
         }
 
-        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB')) || []; }
-        function saveDB(data) { localStorage.setItem('palletSysDB', JSON.stringify(data)); renderTable(); }
+        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026')) || []; }
+        function saveDB(data) { localStorage.setItem('palletSysDB2026', JSON.stringify(data)); renderTable(); }
 
-        // 精準轉換日期為 '26 6/29' 格式
         function formatDateStr(dStr) {
             dStr = dStr.trim();
-            if(dStr.length === 8) dStr = dStr.substring(2); // 去除 20
+            if(dStr.length === 8) dStr = dStr.substring(2);
             if(dStr.length === 6) {
                 var yy = dStr.substring(0, 2);
                 var mm = parseInt(dStr.substring(2, 4), 10);
@@ -196,114 +203,125 @@
             return -1;
         }
 
-        // 【非常備剖析核心】完全適配多行非標準間隔、精準抓取第四行要素
+        // ==================== 【非常備模式一】終極防黏切割演算法 ====================
         function parseMode1() {
             var txt = document.getElementById('textData1').value.trim();
             if(!txt) return;
-            
-            // 根據兩個以上的換行或是單獨一行的空格切分出大區塊
-            var blocks = txt.split(/\n\s*\n/);
+
+            // 用正則表達式尋找所有 10 碼數字的起點位置
+            var markerRegex = /\b\d{10}\b/g;
+            var matches = [];
+            var match;
+            while ((match = markerRegex.exec(txt)) !== null) {
+                matches.push({ id: match[0], index: match.index });
+            }
+
+            if(matches.length === 0) {
+                alert("未找到符合 10 碼編號開頭的資料！");
+                return;
+            }
+
             var db = getDB();
             var showAlert = document.getElementById('enableAlert').checked;
             var successCount = 0;
 
-            for(var b=0; b<blocks.length; b++) {
-                var blockText = blocks[b].trim();
-                if(!blockText) continue;
+            for(var i = 0; i < matches.length; i++) {
+                var startPos = matches[i].index;
+                var endPos = (i + 1 < matches.length) ? matches[i+1].index : txt.length;
+                var blockStr = txt.substring(startPos, endPos).trim();
 
-                var rawLines = blockText.split('\n');
+                // 針對單個區塊進行逐行清洗
+                var rawLines = blockStr.split('\n');
                 var lines = [];
                 for(var j=0; j<rawLines.length; j++){
-                    if(rawLines[j].trim() !== "") lines.push(rawLines[j].trim());
+                    var l = rawLines[j].trim();
+                    if(l !== "") lines.push(l);
                 }
 
-                // 一個標準項目區塊通常包含 6~8 行
                 if(lines.length >= 4) {
-                    var line1 = lines[0]; // 追蹤碼、單號層
-                    var line2 = lines[1]; // 姓名 與 料號層
-                    var line3 = lines[2]; // 規格1
-                    var line4 = lines[3]; // 規格2
+                    // 1. 第一行：提取 10碼 ID 與前4碼編號
+                    var id10 = matches[i].id;
+                    var prefixNo = id10.substring(0, 4); // 開頭的編號
+                    var datePart = id10.substring(4, 10); // 提取日期 260626
+                    var formattedDate = formatDateStr(datePart);
 
-                    // 1. 萃取唯一判定碼與日期代碼
-                    var trackingCode = "";
-                    var serialNo = "";
-                    var matchModify = line1.match(/(?:修改)?(\1*\d{10})/);
-                    if(matchModify) {
-                        trackingCode = matchModify[1]; // 得到 1181260626 或 1183260629
-                        serialNo = line1.split("修改")[0].trim();
-                    } else {
-                        trackingCode = line1;
-                        serialNo = line1;
-                    }
-
-                    // 萃取日期字串
-                    var dateStr = "26 6/29"; // 預設安全值
-                    if(trackingCode.length >= 10) {
-                        var dPart = trackingCode.substring(4, 10); // 抓取 260626 或 260629
-                        dateStr = formatDateStr(dPart);
-                    }
-
-                    // 2. 拆解名字與料號
+                    // 2. 第二行：提取名字與料號
+                    var line2Text = lines[1];
                     var name = "";
                     var partNo = "";
-                    var nameMatch = line2.match(/^([\u4e00-\u9fa5]{2,4})/);
+                    var nameMatch = line2Text.match(/^([\u4e00-\u9fa5]{2,4})/);
                     if(nameMatch) {
                         name = nameMatch[1];
-                        partNo = line2.substring(name.length).trim();
+                        partNo = line2Text.substring(name.length).trim();
                     } else {
-                        partNo = line2;
+                        partNo = line2Text;
                     }
 
-                    // 3. 尋找並萃取 EMC 數量 (例如從 "EMC4000" 或 "4000U2635916" 中撈出 4000)
-                    var countVal = "60"; // 預設值
+                    // 3. 第三、四、五行：厚度、銅箔種類與尺寸
+                    var thickness = lines[2]; // 3mil 1/1
+                    var foilType = lines[3];  // HVLP3 1078*1
+
+                    // 4. 尋找 EMC 與 U 數量，同時檢驗是否一致
+                    var emcQty = "";
+                    var uQty = "";
+                    var subTrackCode = ""; // 7-251022-054
+
                     for(var k=0; k<lines.length; k++) {
-                        var emcMatch = lines[k].match(/EMC(\d+)/i);
-                        if(emcMatch) {
-                            countVal = emcMatch[1];
-                            break;
-                        }
-                        var uMatch = lines[k].match(/^(\d+)U/i);
-                        if(uMatch) {
-                            countVal = uMatch[1];
-                            break;
-                        }
+                        var emcM = lines[k].match(/EMC(\d+)/i);
+                        if(emcM) emcQty = emcM[1];
+
+                        var uM = lines[k].match(/^(\d+)U/i);
+                        if(uM) uQty = uM[1];
+
+                        var trackM = lines[k].match(/(7-\d{6}-\d{3})/);
+                        if(trackM) subTrackCode = trackM[1];
                     }
 
-                    // 4. 組合輸出欄位 (完美適配 344775.jpg 比例)
-                    var line2_display = partNo + " " + line4; // 料號 + HVLP4 1035*2 拼在第二行
-                    var line3_display = line3;               // 規格 (如 4mil 1/H) 放在第三行
-                    var line4_display = dateStr + " " + name + " " + countVal; // 26 6/29 王水欽 4000 放在第四行
-
-                    var uniqueKey = serialNo ? serialNo : trackingCode;
-                    if(uniqueKey === "") uniqueKey = "TEMP_" + Math.random().toString(36).substr(2, 5);
-
-                    var dupIdx = checkDuplicateKey(db, 'mode1', uniqueKey);
-                    if(dupIdx !== -1) {
-                        db[dupIdx].printCount = 0; 
-                        if(showAlert) {
-                            alert("非常備重疊提醒：單號【" + uniqueKey + "】重疊，舊項目列印數已自動歸零，更新為新內容。");
-                        }
+                    // 如果沒撈到 EMC 數量，拿 U 遞補，反之亦然
+                    var finalQty = emcQty || uQty || "0";
+                    var isQuantityError = false;
+                    if(emcQty && uQty && emcQty !== uQty) {
+                        isQuantityError = true; // 觸發紅字提醒
                     }
+
+                    // 5. 組裝符合 2x3 貼紙空間的資料結構
+                    var finalLine2 = partNo + " " + foilType; // 第二行：EM-892K2a HVLP3
+                    var finalLine3 = thickness + " " + foilType.substring(foilType.indexOf(" ") + 1); 
+                    // 精準修正：使第三行變成 "厚度 + 1078*1" 結構
+                    var foilSize = foilType.match(/\d+\*\d+/);
+                    var finalLine3 = thickness + (foilSize ? " " + foilSize[0] : ""); // 第三行：3mil 1/1 1078*1
                     
+                    var finalLine4 = formattedDate + " " + name + " " + finalQty; // 第四行：26 6/26 劉浚銘 50
+
+                    var dupIdx = checkDuplicateKey(db, 'mode1', prefixNo);
+                    if(dupIdx !== -1) {
+                        db[dupIdx].printCount = 0;
+                        if(showAlert) {
+                            alert("編號【" + prefixNo + "】重複進料，舊棧板標籤列印張數已自動歸零。");
+                        }
+                    }
+
                     db.push({
                         mode: 'mode1',
-                        pureCode: uniqueKey,
-                        line2: line2_display,
-                        line3: line3_display,
-                        line4: line4_display,
+                        pureCode: prefixNo, // 以開頭前四碼作為重複判定的依據
+                        line2: finalLine2,
+                        line3: finalLine3,
+                        line4: finalLine4,
+                        subTrack: subTrackCode, // 微型小字追蹤碼
+                        isQtyErr: isQuantityError, // 是否異常變紅
                         isQA: false,
                         printCount: 1
                     });
                     successCount++;
                 }
             }
-            
+
             saveDB(db);
             document.getElementById('textData1').value = '';
-            alert("已成功智慧剖析 " + successCount + " 筆非常備棧板資料！");
+            alert("已完成智慧切割！成功匯入 " + successCount + " 筆非常備資料。");
         }
 
-        // 【常備基板剖析】
+        // ==================== 【常備基板模式二】 ====================
         function parseMode2() {
             var txt = document.getElementById('textData2').value.trim();
             if(!txt) return;
@@ -342,27 +360,33 @@
                     var backPart = line.substring(partNoIdx + purePartNo.length);
                     var hasIqc = (backPart.indexOf("有") !== -1);
 
-                    var line2_val = purePartNo;
-                    var line3_val = ""; 
-                    var line4_val = dateNo;
-
-                    var uniqueKey = purePartNo + " (#" + pureSeqNo + ")";
+                    var uniqueKey = purePartNo;
 
                     var dupIdx = checkDuplicateKey(db, 'mode2', uniqueKey);
                     if(dupIdx !== -1) {
                         db[dupIdx].printCount = 0;
                         if(showAlert) {
-                            alert("常備基板：項目【" + purePartNo + "】重複，舊資料已歸零。");
+                            alert("常備基板原料【" + purePartNo + "】重複，舊資料列印數已歸零。");
                         }
-                    } else {
-                        db.push({ mode: 'mode2', pureCode: uniqueKey, line2: line2_val, line3: line3_val, line4: line4_val, isQA: hasIqc, printCount: 1 });
                     }
+                    
+                    db.push({ 
+                        mode: 'mode2', 
+                        pureCode: uniqueKey, 
+                        line2: purePartNo, 
+                        line3: "", 
+                        line4: dateNo, 
+                        subTrack: "", 
+                        isQtyErr: false, 
+                        isQA: hasIqc, 
+                        printCount: 1 
+                    });
                     importCount++;
                 }
             }
             saveDB(db);
             document.getElementById('textData2').value = '';
-            if(importCount > 0) alert("常備基板智慧處理完成！");
+            if(importCount > 0) alert("常備基板處理完成，共匯入 " + importCount + " 筆！");
         }
 
         function parseMode3() {
@@ -371,16 +395,18 @@
             var l2 = document.getElementById('manualL2').value.trim();
             var l3 = document.getElementById('manualL3').value.trim();
             var l4 = document.getElementById('manualL4').value.trim();
+            var subT = document.getElementById('manualSubTrack').value.trim();
+            var isErr = document.getElementById('manualIsErr').value === "true";
             var iqc = document.getElementById('manualIqc').value === "true";
             
-            if(!pCode || !l2 || !l4) { alert("請填寫必要的判定編號與欄位內容！"); return; }
-            if(m === 'mode2') { l3 = ""; } 
+            if(!pCode || !l2 || !l4) { alert("請填寫必要的欄位！"); return; }
+            if(m === 'mode2') { l3 = ""; }
 
             var db = getDB();
             var dupIdx = checkDuplicateKey(db, m, pCode);
             if(dupIdx !== -1) { db[dupIdx].printCount = 0; }
 
-            db.push({ mode: m, pureCode: pCode, line2: l2, line3: l3, line4: l4, isQA: iqc, printCount: 1 });
+            db.push({ mode: m, pureCode: pCode, line2: l2, line3: l3, line4: l4, subTrack: subT, isQtyErr: isErr, isQA: iqc, printCount: 1 });
             saveDB(db);
             alert("手動新增成功！");
         }
@@ -393,20 +419,18 @@
             for(var i=0; i<db.length; i++) {
                 var item = db[i];
                 var tr = document.createElement('tr');
+                if(item.isQtyErr) { tr.classList.add('alert-row'); }
+
                 var modeText = item.mode === 'mode1' ? '<span style="color:blue;font-weight:bold;">非常備</span>' : '<span style="color:green;font-weight:bold;">常備基板</span>';
                 var disabledL3 = item.mode === 'mode2' ? 'disabled style="background:#eee"' : '';
-                var highlightStyle = item.printCount === 0 ? 'style="background:#f8d7da; color:#721c24;"' : '';
-
-                tr.innerHTML = '<td '+highlightStyle+'>' + (i+1) + '</td>' +
-                    '<td '+highlightStyle+'>  ' + modeText + '</td>' +
-                    '<td '+highlightStyle+'><b>' + item.pureCode + '</b></td>' +
+                
+                tr.innerHTML = '<td>' + (i+1) + '</td>' +
+                    '<td>' + modeText + '</td>' +
+                    '<td><b>' + item.pureCode + '</b></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line2+'" onchange="updateItem('+i+', \'line2\', this.value)"></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line3+'" '+disabledL3+' onchange="updateItem('+i+', \'line3\', this.value)"></td>' +
                     '<td><input type="text" class="edit-input" value="'+item.line4+'" onchange="updateItem('+i+', \'line4\', this.value)"></td>' +
-                    '<td><select onchange="updateItem('+i+', \'isQA\', this.value === \'true\')">' +
-                        '<option value="false" '+( !item.isQA?'selected':'' )+'>一般</option>' +
-                        '<option value="true" '+( item.isQA?'selected':'' )+'>QA型</option>' +
-                    '</select></td>' +
+                    '<td><input type="text" class="edit-input" value="'+(item.subTrack || '')+'" onchange="updateItem('+i+', \'subTrack\', this.value)"></td>' +
                     '<td><input type="number" class="count-input" min="0" value="'+item.printCount+'" onchange="updateItem('+i+', \'printCount\', parseInt(this.value,10)||0)"></td>' +
                     '<td><button class="danger" style="padding:3px 8px; font-size:11px;" onclick="deleteItem('+i+')">刪除</button></td>';
                 
@@ -417,7 +441,7 @@
         function updateItem(idx, field, value) {
             var db = getDB();
             db[idx][field] = value;
-            localStorage.setItem('palletSysDB', JSON.stringify(db));
+            localStorage.setItem('palletSysDB2026', JSON.stringify(db));
             if(field === 'printCount') { renderTable(); }
         }
 
@@ -431,83 +455,76 @@
 
         function clearAllData() { if(confirm("確定要清空整個資料庫？")) { saveDB([]); } }
 
-        // 【智慧 SVG 線條渲染】完整還原 344775.jpg 的極粗/細字體對比結構
+        // ==================== 【智慧 SVG 線條渲染】支援小字與異常紅字 ====================
         function makeSemanticSvg(item, rowNum, alignMode, extraQA) {
             var textAnchor = (alignMode === "left") ? "start" : "middle";
             var xPos = (alignMode === "left") ? "0%" : "50%";
             var aspectRatio = "none";
+            var colorHex = item.isQtyErr ? "#FF0000" : "#000000"; // 數量不一致自動變紅
             
             var segments = [];
 
             if (item.mode === 'mode1') {
                 if (rowNum === 2) {
-                    // 第二行（如：EM-890 RTF3）全部加粗
-                    segments.push({ text: item.line2, isBold: true });
+                    segments.push({ text: item.line2, isBold: true, color: "#000" });
                 } 
                 else if (rowNum === 3) {
-                    // 第三行（如：4mil 1/H 1035*2）全部加粗
-                    segments.push({ text: item.line3, isBold: true });
+                    segments.push({ text: item.line3, isBold: true, color: "#000" });
                 } 
                 else if (rowNum === 4) {
-                    // 第四行對齊 344775.jpg (日期粗體、姓名細體、數量粗體)
                     var tokens = item.line4.split(/\s+/); 
                     if(tokens.length >= 3) {
-                        // tokens[0]+tokens[1] = "26 6/29" (粗體)
-                        segments.push({ text: tokens[0] + " " + tokens[1] + "  ", isBold: true });
-                        // tokens[2] = "王水欽" (細體)
-                        segments.push({ text: tokens[2] + " ", isBold: false });
-                        // 其餘為數量 = "4000" (粗體)
+                        // 日期 (26 6/26) 加粗
+                        segments.push({ text: tokens[0] + " " + tokens[1] + "  ", isBold: true, color: "#000" });
+                        // 人名 (劉浚銘) 細體
+                        segments.push({ text: tokens[2] + " ", isBold: false, color: "#000" });
+                        // 數量 (50) 加粗，若異常帶入紅字
                         var remainTokens = tokens.slice(3).join(" ");
                         if(remainTokens) {
-                            segments.push({ text: " " + remainTokens, isBold: true });
+                            segments.push({ text: " " + remainTokens, isBold: true, color: colorHex });
                         }
-                    } else if(tokens.length === 2) {
-                        segments.push({ text: tokens[0] + " ", isBold: true });
-                        segments.push({ text: tokens[1], isBold: false });
                     } else {
-                        segments.push({ text: item.line4, isBold: true });
+                        segments.push({ text: item.line4, isBold: true, color: "#000" });
                     }
                 }
             } 
             else if (item.mode === 'mode2') {
                 if (rowNum === 2) {
-                    segments.push({ text: item.line2, isBold: true });
+                    segments.push({ text: item.line2, isBold: true, color: "#000" });
                 } 
                 else if (rowNum === 3) {
                     var tokens = item.line4.split(/\s+/); 
                     if(tokens.length >= 2) {
-                        segments.push({ text: tokens[0] + " " + tokens[1], isBold: true });
+                        segments.push({ text: tokens[0] + " " + tokens[1], isBold: true, color: "#000" });
                         var remain = tokens.slice(2).join(" ");
-                        if(remain) segments.push({ text: " " + remain, isBold: false });
+                        if(remain) segments.push({ text: " " + remain, isBold: false, color: "#000" });
                     } else {
-                        segments.push({ text: item.line4, isBold: true });
+                        segments.push({ text: item.line4, isBold: true, color: "#000" });
                     }
                 }
             }
 
             if(extraQA) {
-                segments.push({ text: extraQA, isBold: true });
-            }
-
-            var fullTextLen = segments.map(function(s){ return s.text; }).join("").length;
-            if (fullTextLen > 12) {
-                aspectRatio = (alignMode === "left") ? "xMinYMid meet" : "xMidYMid meet";
+                segments.push({ text: extraQA, isBold: true, color: "#000" });
             }
 
             var tspanHtml = '';
             segments.forEach(function(seg) {
                 if(!seg.text) return;
-                if(seg.isBold) {
-                    // 運用 SVG 特有的 stroke 屬性達成雙重加粗，完美還原相片字體
-                    tspanHtml += '<tspan font-weight="900" stroke-width="0.45" stroke="#000" fill="#000">' + seg.text + '</tspan>';
-                } else {
-                    tspanHtml += '<tspan font-weight="normal" stroke-width="0" fill="#000">' + seg.text + '</tspan>';
-                }
+                var strokeAttr = (seg.isBold) ? ' stroke-width="0.45" stroke="'+seg.color+'"' : ' stroke-width="0"';
+                var weightAttr = (seg.isBold) ? ' font-weight="900"' : ' font-weight="normal"';
+                tspanHtml += '<tspan' + weightAttr + strokeAttr + ' fill="' + seg.color + '">' + seg.text + '</tspan>';
             });
 
-            if(tspanHtml === '') return '&nbsp;';
+            // 處理浮動微型追蹤碼 (只有非常備第4行需要漂浮在人名上方)
+            var subTrackHtml = '';
+            if(item.mode === 'mode1' && rowNum === 4 && item.subTrack) {
+                // 放置於小字級別，x設在中間略偏左，y上提至2
+                subTrackHtml = '<text x="48%" y="3" font-family="Arial" font-size="3" font-weight="normal" text-anchor="start" fill="#555">' + item.subTrack + '</text>';
+            }
 
             return '<svg class="svg-line-container" viewBox="0 0 100 12" preserveAspectRatio="' + aspectRatio + '" xmlns="http://www.w3.org/2000/svg">' +
+                   subTrackHtml +
                    '<text x="'+xPos+'" y="10" font-family="SimHei, 黑體, Arial" font-size="11" text-anchor="' + textAnchor + '">' + tspanHtml + '</text>' +
                    '</svg>';
         }
