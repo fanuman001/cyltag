@@ -34,29 +34,31 @@
 
         #printArea { background: #666; padding: 10px; display: none; }
 
-        /* ==================== 列印專用 A4 2x3 滿版樣式 ==================== */
+        /* ==================== 列印專用 A4 2x3 留邊 0.2CM 貼紙 9.8x9.0CM 樣式 ==================== */
         @media print {
             html, body { background: white; margin: 0 !important; padding: 0 !important; width: 210mm; height: 297mm; }
             .no-print { display: none !important; }
-            #printArea { display: block !important; background: transparent; padding: 0; }
+            #printArea { display: block !important; background: transparent; padding: 0; margin: 0; }
             
-            .page { width: 210mm; height: 297mm; page-break-after: always; box-sizing: border-box; overflow: hidden; padding: 0; margin: 0; }
+            .page { width: 210mm; height: 297mm; page-break-after: always; box-sizing: border-box; overflow: hidden; padding: 0.2cm; margin: 0; }
             
-            .label-cell { width: 100mm; height: 93mm; float: left; margin: 0; border: none; box-sizing: border-box; padding: 4mm 6mm; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+            /* 單張貼紙 寬98mm 高90mm */
+            .label-cell { width: 98mm; height: 90mm; float: left; margin: 0; border: none; box-sizing: border-box; padding: 4mm 5mm; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
             
-            .label-cell:nth-child(2n+1) { padding-left: 10mm; padding-right: 2mm; }
-            .label-cell:nth-child(2n) { padding-left: 2mm; padding-right: 10mm; }
+            /* 微調左右對稱間距 */
+            .label-cell:nth-child(2n+1) { margin-right: 4mm; }
+            .label-cell:nth-child(2n) { margin-left: 0mm; }
 
             .svg-line-container { width: 100%; height: 100%; display: block; overflow: hidden; }
             
-            .m1-h1 { height: 16mm; } 
-            .m1-h2 { height: 22mm; } 
-            .m1-h3 { height: 22mm; } 
-            .m1-h4 { height: 22mm; } 
+            .m1-h1 { height: 15mm; } 
+            .m1-h2 { height: 21mm; } 
+            .m1-h3 { height: 21mm; } 
+            .m1-h4 { height: 21mm; } 
 
-            .m2-h1 { height: 24mm; } 
-            .m2-h2 { height: 32mm; } 
-            .m2-h3 { height: 32mm; } 
+            .m2-h1 { height: 22mm; } 
+            .m2-h2 { height: 30mm; } 
+            .m2-h3 { height: 30mm; } 
         }
     </style>
 </head>
@@ -67,18 +69,18 @@
         
         <div class="config-panel">
             <label style="cursor: pointer;">
-                <input type="checkbox" id="enableAlert" checked> 當偵測到早上下午重複項目時，顯示彈窗提示（若取消勾選，系統會直接靜態將舊單歸0並補進新單）
+                <input type="checkbox" id="enableAlert" checked> 當偵測到早下午重複項目時，顯示彈窗提示（若取消勾選，系統會直接靜態將舊單歸0並補進新單）
             </label>
         </div>
 
         <div class="tabs">
-            <div class="tab active" onclick="switchTab(1)">模式一：貼上直式文字(1*6)</div>
-            <div class="tab" onclick="switchTab(2)">模式二：貼上網頁進料表</div>
+            <div class="tab active" onclick="switchTab(1)">非常備 (模式一：貼上直式文字)</div>
+            <div class="tab" onclick="switchTab(2)">常備基板 (模式二：貼上網頁進料表)</div>
             <div class="tab" onclick="switchTab(3)">模式三：手動逐筆新增</div>
         </div>
 
         <div id="tab1" class="tab-content active">
-            <p>請貼上第一種原始文字資料（依開頭流水編號判斷重複）：</p>
+            <p>請貼上非常備原始文字資料（依開頭流水編號判斷重複）：</p>
             <textarea id="textData1" placeholder="7-260429-026	1182260629&#10;劉浚銘	TU-862HF..."></textarea>
             <button onclick="parseMode1()">剖析並匯入</button>
         </div>
@@ -93,8 +95,8 @@
             <div class="form-group">
                 <label>使用版型格式：</label>
                 <select id="manualMode" onchange="toggleManualInputs()">
-                    <option value="mode1">模式一版型 (4行：留白/料號/規格/日期人員數量追蹤碼)</option>
-                    <option value="mode2">模式二版型 (3行：留白/編號/日期碼)</option>
+                    <option value="mode1">非常備版型 (4行：留白/料號/規格/日期人員數量追蹤碼)</option>
+                    <option value="mode2">常備基板版型 (3行：留白/編號/日期碼)</option>
                 </select>
             </div>
             <div class="form-group">
@@ -107,7 +109,7 @@
                 <label>第三行內容 (空白分隔)：</label><input type="text" id="manualL3" placeholder="如：4.5mil H/H 1035*2">
             </div>
             <div class="form-group">
-                <label id="manualL4Label">第四行內容 (空白分隔)：</label><input type="text" id="manualL4" placeholder="如：26 6/26 廖品勳 60 7-260426-060">
+                <label id="manualL4Label">第四行內容 (空白分隔)：</label><input type="text" id="manualL4" placeholder="如：26 6/26 王水欽 60 7-260426-060">
             </div>
             <div class="form-group">
                 <label>是否IQC/QA：</label>
@@ -181,6 +183,7 @@
                 return yy + " " + mm + "/" + dd;
             }
             return dStr;
+            return dStr;
         }
 
         function checkDuplicateKey(db, mode, checkCode) {
@@ -192,7 +195,7 @@
             return -1;
         }
 
-        // 【模式一剖析】
+        // 【非常備剖析】
         function parseMode1() {
             var txt = document.getElementById('textData1').value.trim();
             if(!txt) return;
@@ -212,7 +215,7 @@
                         });
 
                         var customTrackingCode = r[0][0] || ""; 
-                        var pureSerialNo = r[0][1] || "";       
+                        var pureSerialNo = r[0][1] || "";        
                         
                         if(pureSerialNo.indexOf("修改") !== -1) {
                             pureSerialNo = pureSerialNo.replace("修改", "").trim();
@@ -246,14 +249,20 @@
                         }
                         var formattedDate = datePart ? formatDateStr(datePart) : "26 6/29";
 
-                        var line4_val = formattedDate + " " + name + " " + emcCount + " " + customTrackingCode;
+                        // 特殊修正規則：比對追蹤碼 1183260629，第四行強制更正為指定規格
+                        var line4_val = "";
+                        if (customTrackingCode.indexOf("1183260629") !== -1 || txt.indexOf("1183260629") !== -1 && name.indexOf("王水欽") !== -1) {
+                            line4_val = "26 6/29 王水欽 4000";
+                        } else {
+                            line4_val = formattedDate + " " + name + " " + emcCount + " " + customTrackingCode;
+                        }
 
                         var uniqueKey = customTrackingCode ? customTrackingCode : pureSerialNo;
                         var dupIdx = checkDuplicateKey(db, 'mode1', uniqueKey);
                         if(dupIdx !== -1) {
                             db[dupIdx].printCount = 0; 
                             if(showAlert) {
-                                alert("模式一：流水號【" + uniqueKey + "】重複，已自動將舊單歸 0。");
+                                alert("非常備：流水號【" + uniqueKey + "】重複，已自動將舊單歸 0。");
                             }
                         } else {
                             db.push({ mode: 'mode1', pureCode: uniqueKey, line2: line2_val, line3: line3_val, line4: line4_val, isQA: false, printCount: 1 });
@@ -264,10 +273,10 @@
             }
             saveDB(db);
             document.getElementById('textData1').value = '';
-            alert("模式一資料解析完成！");
+            alert("非常備資料解析完成！");
         }
 
-        // 【模式二剖析】
+        // 【常備基板剖析】
         function parseMode2() {
             var txt = document.getElementById('textData2').value.trim();
             if(!txt) return;
@@ -316,7 +325,7 @@
                     if(dupIdx !== -1) {
                         db[dupIdx].printCount = 0;
                         if(showAlert) {
-                            alert("模式二：項目【" + purePartNo + "】重複，舊資料已歸零。");
+                            alert("常備基板：項目【" + purePartNo + "】重複，舊資料已歸零。");
                         }
                     } else {
                         db.push({ mode: 'mode2', pureCode: uniqueKey, line2: line2_val, line3: line3_val, line4: line4_val, isQA: hasIqc, printCount: 1 });
@@ -327,7 +336,7 @@
             saveDB(db);
             document.getElementById('textData2').value = '';
             if(importCount > 0) {
-                alert("模式二智慧處理完成！");
+                alert("常備基板智慧處理完成！");
             }
         }
 
@@ -359,7 +368,7 @@
             for(var i=0; i<db.length; i++) {
                 var item = db[i];
                 var tr = document.createElement('tr');
-                var modeText = item.mode === 'mode1' ? '<span style="color:blue;font-weight:bold;">模式1</span>' : '<span style="color:green;font-weight:bold;">模式2</span>';
+                var modeText = item.mode === 'mode1' ? '<span style="color:blue;font-weight:bold;">非常備</span>' : '<span style="color:green;font-weight:bold;">常備基板</span>';
                 var disabledL3 = item.mode === 'mode2' ? 'disabled style="background:#eee"' : '';
                 var highlightStyle = item.printCount === 0 ? 'style="background:#f8d7da; color:#721c24;"' : '';
 
@@ -397,7 +406,6 @@
 
         function clearAllData() { if(confirm("確定要清空整個資料庫？")) { saveDB([]); } }
 
-        /* ==================== 核心：涵意精準分流 SVG 渲染引擎 ==================== */
         function makeSemanticSvg(item, rowNum, alignMode, extraQA) {
             var textAnchor = (alignMode === "left") ? "start" : "middle";
             var xPos = (alignMode === "left") ? "0%" : "50%";
