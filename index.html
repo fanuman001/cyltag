@@ -227,9 +227,9 @@
             renderTable(); 
             toggleManualInputs(); 
             
-            // 監聽模式一文字框貼上事件，即時渲染至網格內
+            // 強力對齊：當文字框有任何貼上或輸入，立即強制在網格中鋪開
             document.getElementById('textData1').addEventListener('input', function(e) {
-                updateGridFromText(e.target.value);
+                forceSpreadsheetLayout(e.target.value);
             });
         };
 
@@ -247,7 +247,6 @@
                     let td = document.createElement('td');
                     td.id = `cell-${r}-${c}`;
                     td.contentEditable = "true";
-                    // 綁定手動修改格子同步回資料流的監聽
                     td.addEventListener('blur', function() {
                         serializeGridToText();
                     });
@@ -257,37 +256,38 @@
             }
         }
 
-        // 當使用者貼上文字，自動解析並填入對應的格子內 (支援標準 Excel 橫列與直式黏字格式)
-        function updateGridFromText(txt) {
+        // 強制鋪開核心：確保資料絕對不會塞在單一格子
+        function forceSpreadsheetLayout(txt) {
             clearGrid();
             if(!txt.trim()) return;
 
-            // 清洗與重組直式黏字特徵
+            // 先清洗潛在的直式修改連續字串
             let cleanedTxt = txt.replace(/修改(\d{3,4})(26\d{4})/g, "修改\n$1$2");
-            let rawLines = cleanedTxt.split('\n').map(l => l.trim()).filter(l => l !== "");
+            let rawLines = cleanedTxt.split(/\r?\n/).map(l => l.trim()).filter(l => l !== "");
             
             let currentGridRow = 1;
 
             for (let i = 0; i < rawLines.length; i++) {
                 let line = rawLines[i];
-                let cells = line.split('\t');
+                let cells = line.split('\t'); // 依據 Excel 預設 Tab 鍵切割欄位
 
-                // 檢查是否為標準 Excel 複製出的橫向網格數據 (大於等於3欄)
-                if (cells.length >= 3 && !/^\d{9}$/.test(line)) {
-                    for(let c = 0; c < cells.length && c < GRID_COLS; c++) {
-                        let targetCell = document.getElementById(`cell-${currentGridRow}-${c+1}`);
-                        if(targetCell) targetCell.innerText = cells[c];
+                // 狀況 A：如果是一整行帶有橫向格子的 Excel 數據，直接按欄位依序填入格子
+                if (cells.length >= 2 && !/^\d{9}$/.test(line)) {
+                    if (currentGridRow <= GRID_ROWS) {
+                        for(let c = 0; c < cells.length && c < GRID_COLS; c++) {
+                            let cellTarget = document.getElementById(`cell-${currentGridRow}-${c+1}`);
+                            if(cellTarget) cellTarget.innerText = cells[c];
+                        }
+                        currentGridRow++;
                     }
-                    currentGridRow++;
                 } 
+                // 狀況 B：如果是完全垂直換行的直式黏字數據 (如 975260423 開頭)
                 else {
-                    // 直式连续文本流辨識核心：以「項次+日期」的 9~10 位純數字做為一筆結構的起點
                     let matchHeader = line.match(/^(\d{3,4})(\d{6})$/);
-                    if (matchHeader && currentGridRow + 1 <= GRID_ROWS) {
+                    if (matchHeader && (currentGridRow + 1) <= GRID_ROWS) {
                         let itemNo = matchHeader[1];
                         let rawDate = matchHeader[2];
                         
-                        // 讀取後續關聯行
                         let lookahead = [];
                         for(let j = 1; j <= 12; j++) {
                             if (i + j < rawLines.length) lookahead.push(rawLines[i + j]);
@@ -301,7 +301,6 @@
                         let parsedQty = ""; 
                         let subTrackCode = "";
 
-                        // A. 拆解人名與料號
                         if (lookahead.length > 0) {
                             let nameLine = lookahead[0];
                             let nameMatch = nameLine.match(/^(劉浚銘|李尚儒|洪家呈|許尊凱)(.*)$/);
@@ -312,7 +311,6 @@
                                 partNo = nameLine;
                             }
                         }
-                        // B. 拆解厚度與銅箔
                         if (lookahead.length > 1) {
                             let thickMatch = lookahead[1].match(/^([\d\.]+mil)\s*(.*)$/i);
                             if (thickMatch) {
@@ -320,10 +318,8 @@
                                 foilType = thickMatch[2].trim() || foilType;
                             }
                         }
-                        // C. 玻璃布尺寸
                         if (lookahead.length > 2) glassType = lookahead[2];
                         
-                        // D. 精確尋找真實數量行 (必須小於 5 位數的純數字，拒絕任何預設 125 邏輯)
                         for (let m = 3; m < lookahead.length; m++) {
                             let curL = lookahead[m];
                             if (curL.indexOf("修改") !== -1 || /^\d{9}$/.test(curL)) break;
@@ -331,7 +327,6 @@
                                 parsedQty = curL;
                             }
                         }
-                        // E. 提取微型追蹤碼
                         for (let m = 3; m < lookahead.length; m++) {
                             let curL = lookahead[m];
                             if (curL.indexOf("修改") !== -1 || /^\d{9}$/.test(curL)) break;
@@ -339,22 +334,25 @@
                             if (trackM) { subTrackCode = trackM[1]; break; }
                         }
 
-                        // 將辨識出的直式結構，整齊落入模擬 Excel 的對應格子中
-                        // 第一行格子
+                        // **強行灌入對應的格子坐標，徹底在介面上鋪開**
                         document.getElementById(`cell-${currentGridRow}-1`).innerText = itemNo;
                         document.getElementById(`cell-${currentGridRow}-2`).innerText = rawDate;
                         document.getElementById(`cell-${currentGridRow}-3`).innerText = partNo;
                         document.getElementById(`cell-${currentGridRow}-7`).innerText = parsedQty; 
                         
-                        // 第二行格子
                         document.getElementById(`cell-${currentGridRow+1}-1`).innerText = "";
                         document.getElementById(`cell-${currentGridRow+1}-2`).innerText = name;
                         document.getElementById(`cell-${currentGridRow+1}-4`).innerText = thickness;
                         document.getElementById(`cell-${currentGridRow+1}-5`).innerText = foilType + " " + glassType;
                         document.getElementById(`cell-${currentGridRow+1}-9`).innerText = subTrackCode;
 
-                        currentGridRow += 2; // 跳至下一個基準起點
+                        currentGridRow += 2; 
                         i += 2; 
+                    }
+                    // 如果既不是標準 Excel 橫列，也不是項次開頭，但又孤立存在的文字，就依序塞入當前列的 A 欄
+                    else if (currentGridRow <= GRID_ROWS) {
+                        document.getElementById(`cell-${currentGridRow}-1`).innerText = line;
+                        currentGridRow++;
                     }
                 }
             }
@@ -363,12 +361,12 @@
         function clearGrid() {
             for(let r = 1; r <= GRID_ROWS; r++) {
                 for(let c = 1; c <= GRID_COLS; c++) {
-                    document.getElementById(`cell-${r}-${c}`).innerText = "";
+                    let target = document.getElementById(`cell-${r}-${c}`);
+                    if(target) target.innerText = "";
                 }
             }
         }
 
-        // 當使用者直接手動微調格子的內容，反向同步到後台暫存區
         function serializeGridToText() {
             let lines = [];
             for(let r = 1; r <= GRID_ROWS; r++) {
@@ -405,7 +403,6 @@
         function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_excel_v1')) || []; }
         function saveDB(data) { localStorage.setItem('palletSysDB2026_excel_v1', JSON.stringify(data)); renderTable(); }
 
-        // 日期小卸線轉換核心格式 (如 260423 轉換為 26-04-23)
         function formatDateStr(dStr) {
             dStr = dStr.trim();
             if(dStr.length === 8) dStr = dStr.substring(2);
@@ -427,7 +424,7 @@
             return -1;
         }
 
-        /* ==================== 【執行網格資料流最終匯入】 ==================== */
+        /* ==================== 【由網格清單最終匯入暫存庫】 ==================== */
         function parseMode1() {
             var db = getDB();
             var showAlert = document.getElementById('enableAlert').checked;
@@ -437,7 +434,6 @@
                 let cellA = document.getElementById(`cell-${r}-1`).innerText.trim();
                 let cellB = document.getElementById(`cell-${r}-2`).innerText.trim();
                 
-                // 檢查是否符合第一行的主要特徵 (A欄有純數字項次，B欄有長度大於5的進貨日)
                 if(/^\d+$/.test(cellA) && cellB.length >= 6 && /^\d+$/.test(cellB)) {
                     let itemNo = cellA;
                     let rawDate = cellB;
@@ -449,7 +445,6 @@
                     let foilAndGlass = "RTF 1078*1";
                     let subTrackCode = "";
 
-                    // 從其下方的相鄰行提取輔助明細
                     if(r + 1 <= GRID_ROWS) {
                         let nextA = document.getElementById(`cell-${r+1}-1`).innerText.trim();
                         let nextB = document.getElementById(`cell-${r+1}-2`).innerText.trim();
@@ -462,8 +457,7 @@
                         }
                     }
 
-                    // 【徹底拒絕任何 125 覆蓋邏輯】
-                    // 網格有甚麼數字就顯示甚麼，如果為空就標註為「未填」
+                    // 100% 忠於格子內的數字，絕對沒有預設 125
                     let parsedQty = mainQty || "未填";
 
                     var formattedDate = formatDateStr(rawDate);
@@ -482,7 +476,7 @@
                         subTrack: subTrackCode, isQtyErr: false, isQA: false, printCount: 1
                     });
                     successCount++;
-                    r++; // 安全跳過下一個已被關聯的明細行
+                    r++; 
                 }
             }
 
@@ -652,13 +646,11 @@
                 tspanHtml += '<tspan' + weightAttr + strokeAttr + ' fill="' + seg.color + '">' + seg.text + '</tspan>';
             });
 
-            // 微型追蹤碼：精準置於人名正上方，取消反白效果
             var subTrackHtml = '';
             if(item.mode === 'mode1' && rowNum === 4 && item.subTrack) {
                 subTrackHtml = '<text x="36%" y="3.2" font-family="Arial" font-size="2.6" font-weight="bold" text-anchor="start" fill="#000000" style="letter-spacing: 0.1px;">' + item.subTrack + '</text>';
             }
 
-            // 縱向高度等比例拉高 35%，寬度不縮放
             var yPos = (viewBoxHeight - 1) / 1.35; 
             return '<svg class="svg-line-container" viewBox="0 0 100 ' + viewBoxHeight + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
                    subTrackHtml + 
