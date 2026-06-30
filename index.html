@@ -132,7 +132,7 @@
                 <label>第三行顯示內容：</label><input type="text" id="manualL3" placeholder="4mil T/T 1078*1">
             </div>
             <div class="form-group">
-                <label id="manualL4Label">第四行內容：</label><input type="text" id="manualL4" value="26 4/22 劉浚銘 125">
+                <label id="manualL4Label">第四行內容：</label><input type="text" id="manualL4" value="26/4/22 劉浚銘 125">
             </div>
             <div class="form-group">
                 <label>微型小字追蹤碼：</label><input type="text" id="manualSubTrack" placeholder="7-260327-078 (選填)">
@@ -206,6 +206,7 @@
         function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_v5')) || []; }
         function saveDB(data) { localStorage.setItem('palletSysDB2026_v5', JSON.stringify(data)); renderTable(); }
 
+        // 將日期轉換格式修正為搭配斜線「/」
         function formatDateStr(dStr) {
             dStr = dStr.trim();
             if(dStr.length === 8) dStr = dStr.substring(2);
@@ -213,7 +214,7 @@
                 var yy = dStr.substring(0, 2);
                 var mm = parseInt(dStr.substring(2, 4), 10);
                 var dd = parseInt(dStr.substring(4, 6), 10);
-                return yy + " " + mm + "/" + dd;
+                return yy + "/" + mm + "/" + dd;
             }
             return dStr;
         }
@@ -377,18 +378,16 @@
                 if(match) {
                     var purePartNo = match[1]; 
                     
-                    // 📌 核心增強：直接擴大到搜尋整行文字裡的 20XXXXXX 日期，防範斷行或空格干擾
                     var dateNo = ""; 
                     var dateMatch = line.match(/(20\d{6})/);
                     if(dateMatch) {
                         dateNo = formatDateStr(dateMatch[1]);
                     } else {
-                        // 如果真的抓不到，改為抓取當前的日期，不放寫死的預設值
                         var today = new Date();
                         var yy = String(today.getFullYear()).substring(2);
                         var mm = today.getMonth() + 1;
                         var dd = today.getDate();
-                        dateNo = yy + " " + mm + "/" + dd;
+                        dateNo = yy + "/" + mm + "/" + dd;
                     }
 
                     var partNoIdx = match.index;
@@ -602,4 +601,3 @@
     </script>
 </body>
 </html>
-
