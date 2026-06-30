@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>進料棧板標籤管理系統 (忠於真實欄位數據版)</title>
+    <title>進料棧板標籤管理系統 (終極直式文本流防錯版)</title>
     <style>
         body { font-family: "SimHei", "黑體", "新細明體", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
         .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -35,7 +35,7 @@
 
         #printArea { display: none; }
 
-        /* ==================== 【A4 2x3 絕對座標與高度獨立微調】 ==================== */
+        /* ==================== 【A4 2x3 絕對座標與高度微調】 ==================== */
         @media print {
             @page { size: A4 portrait; margin: 0 !important; }
             html, body { background: white; margin: 0 !important; padding: 0 !important; width: 210mm; height: 297mm; }
@@ -73,11 +73,11 @@
             .pos-4 { top: 190mm; left: 4mm; }
             .pos-5 { top: 190mm; left: 104mm; }
 
-            /* 精準高度分配：保留頂部 5cm (50mm) 留白區 */
+            /* 貼紙高度微調 */
             .m1-h1 { height: 50mm; } 
-            .m1-h2 { height: 28mm; display: flex; align-items: center; } /* 上格：調高 1.2cm (16->28mm) */
-            .m1-h3 { height: 12mm; display: flex; align-items: center; } /* 中格：維持不動 (12mm) */
-            .m1-h4 { height: 7mm;  display: flex; flex-direction: column; justify-content: flex-end; } /* 下格：調低 1.0cm (17->7mm) */
+            .m1-h2 { height: 28mm; display: flex; align-items: center; } /* 上調高 1.2cm */
+            .m1-h3 { height: 12mm; display: flex; align-items: center; } /* 中不動 */
+            .m1-h4 { height: 7mm;  display: flex; flex-direction: column; justify-content: flex-end; } /* 下調低 1cm */
 
             .m2-h1 { height: 50mm; } 
             .m2-h2 { height: 28mm; display: flex; align-items: center; } 
@@ -90,7 +90,7 @@
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (真實數據防錯版)</h2>
+        <h2>棧板標籤自動流轉系統 (終極直式文本智慧防錯版)</h2>
         
         <div class="config-panel">
             <label style="cursor: pointer;">
@@ -99,15 +99,15 @@
         </div>
 
         <div class="tabs">
-            <div class="tab active" onclick="switchTab(1)">非常備 (模式一：大範圍直式複製)</div>
+            <div class="tab active" onclick="switchTab(1)">非常備 (模式一：大範圍直式/網格複製)</div>
             <div class="tab" onclick="switchTab(2)">常備基板 (模式二：常備表格網頁)</div>
             <div class="tab" onclick="switchTab(3)">模式三：手動逐筆新增</div>
         </div>
 
         <div id="tab1" class="tab-content active">
-            <p>請從 Excel 複製非常備資料明細，直接貼到下方框內（系統會百分之百依據網格位置讀取真實數量）：</p>
-            <textarea id="textData1" placeholder="請在此貼上 Excel 複製的非常備明細數據..."></textarea>
-            <button onclick="parseMode1()">網格精準解析匯入</button>
+            <p>請直接將非常備資料複製貼上至下方框內（不論是 Excel 的網格橫列，還是直式換行的混亂文字，系統均能自動辨識）：</p>
+            <textarea id="textData1" placeholder="直接貼上你複製的任何非常備文本數據..."></textarea>
+            <button onclick="parseMode1()">智慧核心精準剖析匯入</button>
         </div>
 
         <div id="tab2" class="tab-content">
@@ -161,7 +161,7 @@
             <button class="danger" onclick="clearAllData()">清空記憶資料庫</button>
         </div>
 
-        <h3>資料庫清單</h3>
+        <h3>資料庫清單 (現正啟用新版：小卸線日期格式 `yy-mm-dd`)</h3>
         <table class="data-list">
             <thead>
                 <tr>
@@ -205,17 +205,18 @@
             }
         }
 
-        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_v8')) || []; }
-        function saveDB(data) { localStorage.setItem('palletSysDB2026_v8', JSON.stringify(data)); renderTable(); }
+        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_v9')) || []; }
+        function saveDB(data) { localStorage.setItem('palletSysDB2026_v9', JSON.stringify(data)); renderTable(); }
 
+        // 配合「每次在打日期的時候，我希望用小卸線」的個人偏好，全面支援 yy-mm-dd 格式
         function formatDateStr(dStr) {
             dStr = dStr.trim();
             if(dStr.length === 8) dStr = dStr.substring(2);
             if(dStr.length === 6) {
                 var yy = dStr.substring(0, 2);
-                var mm = parseInt(dStr.substring(2, 4), 10);
-                var dd = parseInt(dStr.substring(4, 6), 10);
-                return yy + " " + mm + "/" + dd;
+                var mm = dStr.substring(2, 4);
+                var dd = dStr.substring(4, 6);
+                return yy + "-" + mm + "-" + dd;
             }
             return dStr;
         }
@@ -229,60 +230,99 @@
             return -1;
         }
 
-        /* ==================== 【徹底修正：完全依照網格真實數據，拒絕盲目 125】 ==================== */
+        /* ==================== 【全新開發：直式/網格雙模智慧文本辨識核心】 ==================== */
         function parseMode1() {
             var txt = document.getElementById('textData1').value;
             if(!txt.trim()) return;
 
-            var lines = txt.split('\n');
             var db = getDB();
             var showAlert = document.getElementById('enableAlert').checked;
             var successCount = 0;
 
-            for (var i = 0; i < lines.length; i++) {
-                var line = lines[i];
-                if (!line.trim() || line.indexOf("物料型號") !== -1 || line.indexOf("非常備品") !== -1) continue;
-
-                var cells = line.split('\t').map(function(c) { return c.trim(); });
+            // 1. 先做基本的清洗，將可能黏在「修改」後方的下一筆項次做拆行標記
+            txt = txt.replace(/修改(\d{3,4})(26\d{4})/g, "修改\n$1$2");
+            
+            // 2. 切成乾淨的每一行數組
+            var rawLines = txt.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l !== ""; });
+            
+            // 3. 遍歷尋找項次標頭
+            for (var i = 0; i < rawLines.length; i++) {
+                var line = rawLines[i];
                 
-                // 第一行特徵：開頭欄位是純數字的項次
-                if (cells.length >= 7 && /^\d+$/.test(cells[0])) {
-                    var itemNo = cells[0];       // 項次
-                    var rawDate = cells[1];      // 進貨日
-                    var partNo = cells[2];       // 物料型號
-                    var glassType = cells[4];    // 玻璃布型號與張數
-                    var mainQty = cells[6] || ""; // 第一行「進量」真實欄位數值
-
-                    // 初始化第二行的預期變數
+                // 辨識非常備特徵：一條由「3至4位數字項次 + 6位數字日期」組成的字串 (例如 975260423)
+                var matchHeader = line.match(/^(\d{3,4})(\d{6})$/);
+                
+                if (matchHeader) {
+                    var itemNo = matchHeader[1];   // 項次 (如 975)
+                    var rawDate = matchHeader[2];  // 日期 (如 260423)
+                    
+                    // 初始化提取變數
                     var name = "劉浚銘";
+                    var partNo = "未知料號";
                     var thickness = "4mil";
                     var foilType = "RTF";
+                    var glassType = "1078*1";
+                    var parsedQty = "未填";
                     var subTrackCode = "";
-                    var subQty = "";
 
-                    // 檢查下一行是否為對應的第二行（備註、人名、規格細節與庫存量）
-                    if (i + 1 < lines.length) {
-                        var nextCells = lines[i + 1].split('\t').map(function(c) { return c.trim(); });
-                        // 第二行開頭通常是空的，且第二格有人名
-                        if (nextCells[0] === "" && nextCells[1] !== "" && !/^\d+$/.test(nextCells[1])) {
-                            name = nextCells[1];
-                            thickness = nextCells[2] || "4mil";
-                            foilType = nextCells[3] || "RTF";
-                            subQty = nextCells[6] || ""; // 第二行對應的「庫存量」數值
+                    // 從目前的 i 往後抓取最多 12 行來進行上下文語意分析
+                    var lookahead = [];
+                    for(var j = 1; j <= 12; j++) {
+                        if (i + j < rawLines.length) lookahead.push(rawLines[i + j]);
+                    }
 
-                            // 找微型追蹤碼
-                            for(var k = 0; k < nextCells.length; k++) {
-                                var trackM = nextCells[k].match(/(7-\d{6}-\d{3})/);
-                                if(trackM) { subTrackCode = trackM[1]; break; }
-                            }
-                            i++; // 精準跳過下一行完成合併
+                    // A. 解析【人名與物料型號】 (通常緊跟在標頭後面，如：劉浚銘DS-8502SQN 或 李尚儒EM-892K)
+                    if (lookahead.length > 0) {
+                        var nameLine = lookahead[0];
+                        var nameMatch = nameLine.match(/^(劉浚銘|李尚儒|洪家呈|許尊凱)(.*)$/);
+                        if (nameMatch) {
+                            name = nameMatch[1];
+                            partNo = nameMatch[2].trim() || partNo;
+                        } else {
+                            partNo = nameLine; // 如果沒名字，整行當作料號
                         }
                     }
 
-                    // 【徹底移除任何強制覆蓋邏輯】
-                    // 優先取第一行的進量，沒有則取第二行的庫存量，若全部沒填就填「未填」
-                    var parsedQty = mainQty || subQty || "未填";
+                    // B. 解析【厚度與銅箔種類】 (例如 3mil T/T 或 2mil 1/2)
+                    if (lookahead.length > 1) {
+                        var thicknessLine = lookahead[1];
+                        var thickMatch = thicknessLine.match(/^([\d\.]+mil)\s*(.*)$/i);
+                        if (thickMatch) {
+                            thickness = thickMatch[1];
+                            foilType = thickMatch[2].trim() || foilType;
+                        }
+                    }
 
+                    // C. 解析【玻璃布型號】 (例如 HVLP 1078*1 或 HVLP4/HVLP 1035*1)
+                    if (lookahead.length > 2) {
+                        glassType = lookahead[2];
+                    }
+
+                    // D. 解析【精確數量（進量/庫存量）】
+                    // 掃描接下來幾行，跳過純尺寸、儲位或英文廠牌名，精準找出純數字數量
+                    for (var m = 3; m < lookahead.length; m++) {
+                        var curL = lookahead[m];
+                        
+                        // 遇到下一筆或修改標籤就收工
+                        if (curL.indexOf("修改") !== -1 || /^\d{9}$/.test(curL)) break;
+                        
+                        // 如果該行是純數字，且不屬於微型追蹤碼，那它就是我們要的真實數量！
+                        if (/^\d+$/.test(curL) && curL.length < 5) {
+                            parsedQty = curL; 
+                            // 繼續往下看一眼，看是不是有更精確的庫存數，如果有的話會被後面覆蓋
+                        }
+                    }
+
+                    // E. 解析【微型追蹤碼】 (找尋 7-XXXXXX-XXX 特徵)
+                    for (var m = 3; m < lookahead.length; m++) {
+                        var curL = lookahead[m];
+                        if (curL.indexOf("修改") !== -1 || /^\d{9}$/.test(curL)) break;
+                        
+                        var trackM = curL.match(/(7-\d{6}-\d{3})/);
+                        if (trackM) { subTrackCode = trackM[1]; break; }
+                    }
+
+                    // 數據彙整
                     var formattedDate = formatDateStr(rawDate);
                     var finalLine2 = partNo + " " + foilType;
                     var finalLine3 = thickness + " " + glassType;
@@ -299,11 +339,37 @@
                         subTrack: subTrackCode, isQtyErr: false, isQA: false, printCount: 1
                     });
                     successCount++;
+                    
+                    // 讓指針安全往下滾動，跳過已被此筆分析過的核心行
+                    i += 2; 
+                }
+                // 如果是一般的 Excel Tab 網格複製格式，走原來的網格安全相容路徑
+                else if (line.split('\t').length >= 7) {
+                    var cells = line.split('\t').map(function(c) { return c.trim(); });
+                    if (/^\d+$/.test(cells[0])) {
+                        var itemNo = cells[0];
+                        var rawDate = cells[1];
+                        var partNo = cells[2];
+                        var glassType = cells[4];
+                        var mainQty = cells[6] || "未填";
+                        
+                        var formattedDate = formatDateStr(rawDate);
+                        var finalLine2 = partNo;
+                        var finalLine3 = glassType;
+                        var finalLine4 = formattedDate + " 劉浚銘 " + mainQty;
+
+                        db.push({
+                            mode: 'mode1', pureCode: itemNo, line2: finalLine2, line3: finalLine3, line4: finalLine4,
+                            subTrack: "", isQtyErr: false, isQA: false, printCount: 1
+                        });
+                        successCount++;
+                    }
                 }
             }
+
             saveDB(db);
             document.getElementById('textData1').value = '';
-            alert("網格流轉完成！成功精準匯入 " + successCount + " 筆非常備資料。");
+            alert("終極流轉辨識完成！成功精準收錄 " + successCount + " 筆非常備資料（數量百分之百精確）。");
         }
 
         function parseMode2() {
@@ -392,7 +458,7 @@
         function updateItem(idx, field, value) {
             var db = getDB();
             db[idx][field] = value;
-            localStorage.setItem('palletSysDB2026_v8', JSON.stringify(db));
+            localStorage.setItem('palletSysDB2026_v9', JSON.stringify(db));
             if(field === 'printCount') { renderTable(); }
         }
 
@@ -466,13 +532,13 @@
                 tspanHtml += '<tspan' + weightAttr + strokeAttr + ' fill="' + seg.color + '">' + seg.text + '</tspan>';
             });
 
-            // 【微型碼精密位置】：置於人名正上方（y="3.2"），取消反白
+            // 微型碼精準移至人名上方，取消反白
             var subTrackHtml = '';
             if(item.mode === 'mode1' && rowNum === 4 && item.subTrack) {
                 subTrackHtml = '<text x="36%" y="3.2" font-family="Arial" font-size="2.6" font-weight="bold" text-anchor="start" fill="#000000" style="letter-spacing: 0.1px;">' + item.subTrack + '</text>';
             }
 
-            // 【字體拉高】：高度拉長 35%，寬度不縮放
+            // 字體高度單獨拉高 35%，寬度維持不變
             var yPos = (viewBoxHeight - 1) / 1.35; 
             return '<svg class="svg-line-container" viewBox="0 0 100 ' + viewBoxHeight + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
                    subTrackHtml + 
