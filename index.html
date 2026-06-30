@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>進料棧板標籤管理系統 (常備日期精準加強版)</title>
+    <title>進料棧板標籤管理系統 (字體拉伸與網格精準版)</title>
     <style>
         body { font-family: "SimHei", "黑體", "新細明體", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
         .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -35,7 +35,7 @@
 
         #printArea { display: none; }
 
-        /* ==================== 【A4 2x3 絕對座標與5cm留白區】 ==================== */
+        /* ==================== 【A4 2x3 絕對座標與 5cm 留白區】 ==================== */
         @media print {
             @page { size: A4 portrait; margin: 0 !important; }
             html, body { background: white; margin: 0 !important; padding: 0 !important; width: 210mm; height: 297mm; }
@@ -57,7 +57,7 @@
                 width: 100mm; 
                 height: 95mm; 
                 box-sizing: border-box; 
-                padding: 0mm 1mm 0mm 1mm; 
+                padding: 0mm 2mm 0mm 2mm; 
                 overflow: hidden; 
                 display: flex; 
                 flex-direction: column; 
@@ -65,6 +65,7 @@
                 background: transparent;
             }
             
+            /* 2x3 網格精準定位 */
             .pos-0 { top: 0mm; left: 4mm; }
             .pos-1 { top: 0mm; left: 104mm; }
             .pos-2 { top: 95mm; left: 4mm; }
@@ -72,23 +73,24 @@
             .pos-4 { top: 190mm; left: 4mm; }
             .pos-5 { top: 190mm; left: 104mm; }
 
-            .svg-wrapper { width: 100%; display: block; overflow: hidden; position: relative; }
-            
+            /* 區塊高度分配：保留頂部 5cm (50mm) 留白區 */
             .m1-h1 { height: 50mm; } 
-            .m1-h2 { height: 16mm; } 
-            .m1-h3 { height: 12mm; } 
-            .m1-h4 { height: 17mm; display: flex; flex-direction: column; justify-content: flex-end; } 
+            .m1-h2 { height: 16mm; display: flex; align-items: center; } /* 中間第二行 */
+            .m1-h3 { height: 12mm; display: flex; align-items: center; } /* 中間第三行 */
+            .m1-h4 { height: 17mm; display: flex; flex-direction: column; justify-content: flex-end; } /* 下方第四行 */
 
             .m2-h1 { height: 50mm; } 
-            .m2-h2 { height: 18mm; } 
+            .m2-h2 { height: 18mm; display: flex; align-items: center; } 
             .m2-h3 { height: 27mm; display: flex; flex-direction: column; justify-content: flex-end; } 
+            
+            .svg-line-container { width: 100%; height: 100%; display: block; }
         }
     </style>
 </head>
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (常備日期精準加強版)</h2>
+        <h2>棧板標籤自動流轉系統 (進階版型優化)</h2>
         
         <div class="config-panel">
             <label style="cursor: pointer;">
@@ -103,14 +105,14 @@
         </div>
 
         <div id="tab1" class="tab-content active">
-            <p>請直接將非常備資料整段複製貼上（已鎖定頂部 5cm 留白，已支援 1~4 位數任意長度序號）：</p>
-            <textarea id="textData1" placeholder="貼上原始資料（例如：624250808 或 25250808 等任意組合）"></textarea>
+            <p>請直接將非常備自 Excel 或系統複製的格子資料整段貼上（支援自動解析與字體拉伸）：</p>
+            <textarea id="textData1" placeholder="貼上原始資料（包含序號、日期、料號、規格、數量等...）"></textarea>
             <button onclick="parseMode1()">精準剖析並匯入</button>
         </div>
 
         <div id="tab2" class="tab-content">
-            <p>請直接將網頁整段複製（系統已全面加強行內日期搜尋，精準解析 20260422 等日期）：</p>
-            <textarea id="textData2" placeholder="直接把網頁複製的進料管理表資料整段貼在這裡..."></textarea>
+            <p>請直接將常備網頁/Excel 資料整段貼上：</p>
+            <textarea id="textData2" placeholder="直接貼上進料管理表資料..."></textarea>
             <button onclick="parseMode2()">智慧剖析並匯入</button>
         </div>
 
@@ -132,7 +134,7 @@
                 <label>第三行顯示內容：</label><input type="text" id="manualL3" placeholder="4mil T/T 1078*1">
             </div>
             <div class="form-group">
-                <label id="manualL4Label">第四行內容：</label><input type="text" id="manualL4" value="26/4/22 劉浚銘 125">
+                <label id="manualL4Label">第四行內容：</label><input type="text" id="manualL4" value="26 4/22 劉浚銘 125">
             </div>
             <div class="form-group">
                 <label>微型小字追蹤碼：</label><input type="text" id="manualSubTrack" placeholder="7-260327-078 (選填)">
@@ -206,7 +208,6 @@
         function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_v5')) || []; }
         function saveDB(data) { localStorage.setItem('palletSysDB2026_v5', JSON.stringify(data)); renderTable(); }
 
-        // 將日期轉換格式修正為搭配斜線「/」
         function formatDateStr(dStr) {
             dStr = dStr.trim();
             if(dStr.length === 8) dStr = dStr.substring(2);
@@ -214,7 +215,7 @@
                 var yy = dStr.substring(0, 2);
                 var mm = parseInt(dStr.substring(2, 4), 10);
                 var dd = parseInt(dStr.substring(4, 6), 10);
-                return yy + "/" + mm + "/" + dd;
+                return yy + " " + mm + "/" + dd;
             }
             return dStr;
         }
@@ -377,7 +378,6 @@
                 var match = partNoRegex.exec(line);
                 if(match) {
                     var purePartNo = match[1]; 
-                    
                     var dateNo = ""; 
                     var dateMatch = line.match(/(20\d{6})/);
                     if(dateMatch) {
@@ -387,7 +387,7 @@
                         var yy = String(today.getFullYear()).substring(2);
                         var mm = today.getMonth() + 1;
                         var dd = today.getDate();
-                        dateNo = yy + "/" + mm + "/" + dd;
+                        dateNo = yy + " " + mm + "/" + dd;
                     }
 
                     var partNoIdx = match.index;
@@ -476,18 +476,20 @@
 
         function clearAllData() { if(confirm("確定要清空整個資料庫？")) { saveDB([]); } }
 
+        /* ==================== 【關鍵優化：SVG 字體拉伸與動態對齊機制】 ==================== */
         function makeSemanticSvg(item, rowNum, alignMode, extraQA) {
             var textAnchor = (alignMode === "left") ? "start" : "middle";
-            var xPos = (alignMode === "left") ? "0%" : "50%";
+            var xPos = (alignMode === "left") ? "2%" : "50%";
             var colorHex = item.isQtyErr ? "#FF0000" : "#000000";
             
             var segments = [];
             var viewBoxHeight = 12; 
             var fontSizeValue = 11;  
+            var useStretch = false; // 是否啟用長度壓縮拉伸
 
             if (item.mode === 'mode1') {
                 if (rowNum === 2) {
-                    viewBoxHeight = 14; fontSizeValue = 13;
+                    viewBoxHeight = 14; fontSizeValue = 12; useStretch = true; // 料號較長時啟用拉伸
                     segments.push({ text: item.line2, isBold: true, color: "#000", isName: false });
                 } 
                 else if (rowNum === 3) {
@@ -509,7 +511,7 @@
             } 
             else if (item.mode === 'mode2') {
                 if (rowNum === 2) {
-                    viewBoxHeight = 14; fontSizeValue = 13;
+                    viewBoxHeight = 14; fontSizeValue = 13; useStretch = true;
                     segments.push({ text: item.line2, isBold: true, color: "#000", isName: false });
                 } 
                 else if (rowNum === 3) {
@@ -528,16 +530,26 @@
             if(extraQA) { segments.push({ text: extraQA, isBold: true, color: "#000", isName: false }); }
 
             var tspanHtml = '';
+            var fullRawText = "";
             segments.forEach(function(seg) {
                 if(!seg.text) return;
-                var strokeAttr = (seg.isBold) ? ' stroke-width="0.5" stroke="'+seg.color+'"' : ' stroke-width="0"';
+                fullRawText += seg.text;
+                var strokeAttr = (seg.isBold) ? ' stroke-width="0.4" stroke="'+seg.color+'"' : ' stroke-width="0"';
                 var weightAttr = (seg.isBold) ? ' font-weight="900"' : ' font-weight="normal"';
                 if(seg.isName) {
-                    tspanHtml += '<tspan font-weight="normal" stroke-width="0" fill="' + seg.color + '" font-size="7.5">' + seg.text + '</tspan>';
+                    tspanHtml += '<tspan font-weight="normal" stroke-width="0" fill="' + seg.color + '" font-size="8.5">' + seg.text + '</tspan>';
                 } else {
                     tspanHtml += '<tspan' + weightAttr + strokeAttr + ' fill="' + seg.color + '">' + seg.text + '</tspan>';
                 }
             });
+
+            // 實作拉伸與防超長縮放機制 (當總字數多於 15 個字時自動等比例壓縮)
+            var stretchAttr = "";
+            if (useStretch && fullRawText.length > 15) {
+                stretchAttr = ' textLength="96" lengthAdjust="spacingAndGlyphs"';
+                xPos = "2%"; // 壓縮時靠左稍微修正留白
+                textAnchor = "start";
+            }
 
             var subTrackHtml = '';
             if(item.mode === 'mode1' && rowNum === 4 && item.subTrack) {
@@ -547,7 +559,7 @@
             var yPos = viewBoxHeight - 2; 
             return '<svg class="svg-line-container" viewBox="0 0 100 ' + viewBoxHeight + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
                    '<g>' +
-                   '<text x="'+xPos+'" y="' + yPos + '" font-family="SimHei, 黑體, Arial" font-size="' + fontSizeValue + '" text-anchor="' + textAnchor + '">' + tspanHtml + '</text>' +
+                   '<text x="'+xPos+'" y="' + yPos + '" font-family="SimHei, 黑體, Arial" font-size="' + fontSizeValue + '" text-anchor="' + textAnchor + '"' + stretchAttr + '>' + tspanHtml + '</text>' +
                    '</g>' +
                    subTrackHtml +
                    '</svg>';
