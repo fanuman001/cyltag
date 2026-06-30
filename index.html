@@ -227,7 +227,7 @@
             renderTable(); 
             toggleManualInputs(); 
             
-            // 強力對齊：當文字框有任何貼上或輸入，立即強制在網格中鋪開
+            // 監聽文字框輸入，即時強制在網格中「橫向平鋪展開」
             document.getElementById('textData1').addEventListener('input', function(e) {
                 forceSpreadsheetLayout(e.target.value);
             });
@@ -256,102 +256,131 @@
             }
         }
 
-        // 強制鋪開核心：確保資料絕對不會塞在單一格子
+        // 核心對齊機制：解決「雙欄垂直長條」格式，將其強制攤平橫向鋪開
         function forceSpreadsheetLayout(txt) {
             clearGrid();
             if(!txt.trim()) return;
 
-            // 先清洗潛在的直式修改連續字串
-            let cleanedTxt = txt.replace(/修改(\d{3,4})(26\d{4})/g, "修改\n$1$2");
-            let rawLines = cleanedTxt.split(/\r?\n/).map(l => l.trim()).filter(l => l !== "");
-            
+            // 將純文本轉換為「行」與「欄」的二維陣列
+            let rawLines = txt.split(/\r?\n/).map(l => l.trim());
+            let dataMatrix = [];
+
+            for(let i = 0; i < rawLines.length; i++) {
+                if(rawLines[i] === "") continue;
+                // 用 Tab 鍵切分欄位
+                let parts = rawLines[i].split('\t').map(p => p.trim());
+                dataMatrix.push(parts);
+            }
+
             let currentGridRow = 1;
 
-            for (let i = 0; i < rawLines.length; i++) {
-                let line = rawLines[i];
-                let cells = line.split('\t'); // 依據 Excel 預設 Tab 鍵切割欄位
+            // 開始掃描二維資料
+            for (let i = 0; i < dataMatrix.length; i++) {
+                let rowData = dataMatrix[i];
+                if (!rowData || rowData.length === 0) continue;
 
-                // 狀況 A：如果是一整行帶有橫向格子的 Excel 數據，直接按欄位依序填入格子
-                if (cells.length >= 2 && !/^\d{9}$/.test(line)) {
-                    if (currentGridRow <= GRID_ROWS) {
-                        for(let c = 0; c < cells.length && c < GRID_COLS; c++) {
-                            let cellTarget = document.getElementById(`cell-${currentGridRow}-${c+1}`);
-                            if(cellTarget) cellTarget.innerText = cells[c];
+                let colA = rowData[0] || "";
+                let colB = rowData[1] || "";
+
+                // 特徵辨識：如果 A 欄是3~4位純數字(項次)，且 B 欄是6位純數字(日期)，代表捕捉到雙欄直式循環起點！
+                if (/^\d{3,4}$/.test(colA) && /^\d{6}$/.test(colB)) {
+                    let itemNo = colA;
+                    let rawDate = colB;
+                    
+                    // 向下收集接下來的資料列明細 (一般一組約 8~10 行)
+                    let lookahead = [];
+                    for(let j = 1; j <= 11; j++) {
+                        if (i + j < dataMatrix.length) {
+                            lookahead.push(dataMatrix[i + j]);
                         }
-                        currentGridRow++;
                     }
-                } 
-                // 狀況 B：如果是完全垂直換行的直式黏字數據 (如 975260423 開頭)
-                else {
-                    let matchHeader = line.match(/^(\d{3,4})(\d{6})$/);
-                    if (matchHeader && (currentGridRow + 1) <= GRID_ROWS) {
-                        let itemNo = matchHeader[1];
-                        let rawDate = matchHeader[2];
+
+                    let name = "劉浚銘";
+                    let partNo = "未知料號";
+                    let thickness = "4mil";
+                    let foilType = "";
+                    let glassType = "";
+                    let parsedQty = ""; 
+                    let subTrackCode = "";
+
+                    // 第 1 行明細：通常是 [人名, 料號] (例如: 王水欽, EM-890)
+                    if (lookahead[0] && lookahead[0].length >= 1) {
+                        let la0_A = lookahead[0][0] || "";
+                        let la0_B = lookahead[0][1] || "";
+                        if (la0_A.match(/^(劉浚銘|李尚儒|洪家呈|許尊凱|王水欽|吳禮言)/)) {
+                            name = la0_A;
+                            partNo = la0_B || partNo;
+                        } else {
+                            partNo = la0_A;
+                        }
+                    }
+
+                    // 第 2 行明細：通常是 [厚度, 銅箔/規格] (例如: 4mil, 1/H)
+                    if (lookahead[1] && lookahead[1].length >= 1) {
+                        thickness = lookahead[1][0] || thickness;
+                        foilType = lookahead[1][1] || "";
+                    }
+
+                    // 第 3 行明細：通常是 [玻璃布種類, 規格尺寸] (例如: RTF3, 1035*2)
+                    if (lookahead[2] && lookahead[2].length >= 1) {
+                        let la2_A = lookahead[2][0] || "";
+                        let la2_B = lookahead[2][1] || "";
+                        glassType = la2_A + " " + la2_B;
+                    }
+
+                    // 精準向下掃描尋找【真實數量】與【微型碼】
+                    for(let m = 3; m < lookahead.length; m++) {
+                        let cells = lookahead[m];
+                        if(!cells || cells.length === 0) continue;
                         
-                        let lookahead = [];
-                        for(let j = 1; j <= 12; j++) {
-                            if (i + j < rawLines.length) lookahead.push(rawLines[i + j]);
+                        let cellA = cells[0] || "";
+                        let cellB = cells[1] || "";
+
+                        // 如果碰到下一個循環的開頭，提早結束搜尋
+                        if (/^\d{3,4}$/.test(cellA) && /^\d{6}$/.test(cellB)) break;
+                        if (cellB.indexOf("修改") !== -1) {
+                            // 如果在修改這一行左側有微型碼，順便撈起來
+                            let trackM = cellA.match(/(7-\d{6}-\d{3})/);
+                            if (trackM) subTrackCode = trackM[1];
+                            break;
                         }
 
-                        let name = "劉浚銘";
-                        let partNo = "未知料號";
-                        let thickness = "4mil";
-                        let foilType = "RTF";
-                        let glassType = "1078*1";
-                        let parsedQty = ""; 
-                        let subTrackCode = "";
-
-                        if (lookahead.length > 0) {
-                            let nameLine = lookahead[0];
-                            let nameMatch = nameLine.match(/^(劉浚銘|李尚儒|洪家呈|許尊凱)(.*)$/);
-                            if (nameMatch) {
-                                name = nameMatch[1];
-                                partNo = nameMatch[2].trim() || partNo;
-                            } else {
-                                partNo = nameLine;
-                            }
+                        // 精準數量提取邏輯：尋找純數字，且長度小於 5 位的獨立欄位 (絕不盲目填 125)
+                        if (/^\d+$/.test(cellA) && cellA.length < 5) {
+                            parsedQty = cellA; 
+                        } else if (/^\d+$/.test(cellB) && cellB.length < 5) {
+                            parsedQty = cellB;
                         }
-                        if (lookahead.length > 1) {
-                            let thickMatch = lookahead[1].match(/^([\d\.]+mil)\s*(.*)$/i);
-                            if (thickMatch) {
-                                thickness = thickMatch[1];
-                                foilType = thickMatch[2].trim() || foilType;
-                            }
-                        }
-                        if (lookahead.length > 2) glassType = lookahead[2];
                         
-                        for (let m = 3; m < lookahead.length; m++) {
-                            let curL = lookahead[m];
-                            if (curL.indexOf("修改") !== -1 || /^\d{9}$/.test(curL)) break;
-                            if (/^\d+$/.test(curL) && curL.length < 5) {
-                                parsedQty = curL;
-                            }
-                        }
-                        for (let m = 3; m < lookahead.length; m++) {
-                            let curL = lookahead[m];
-                            if (curL.indexOf("修改") !== -1 || /^\d{9}$/.test(curL)) break;
-                            let trackM = curL.match(/(7-\d{6}-\d{3})/);
-                            if (trackM) { subTrackCode = trackM[1]; break; }
-                        }
+                        // 另外一條路徑撈取微型碼
+                        let trackM = cellA.match(/(7-\d{6}-\d{3})/);
+                        if (trackM) subTrackCode = trackM[1];
+                    }
 
-                        // **強行灌入對應的格子坐標，徹底在介面上鋪開**
+                    // **核心修正：原封不動的長條格式，現在全部被打包，精準「橫向鋪開」填入對應格子中**
+                    if (currentGridRow <= GRID_ROWS) {
                         document.getElementById(`cell-${currentGridRow}-1`).innerText = itemNo;
                         document.getElementById(`cell-${currentGridRow}-2`).innerText = rawDate;
                         document.getElementById(`cell-${currentGridRow}-3`).innerText = partNo;
-                        document.getElementById(`cell-${currentGridRow}-7`).innerText = parsedQty; 
+                        document.getElementById(`cell-${currentGridRow}-4`).innerText = thickness;
+                        document.getElementById(`cell-${currentGridRow}-5`).innerText = (foilType + " " + glassType).trim();
+                        document.getElementById(`cell-${currentGridRow}-6`).innerText = name;
+                        document.getElementById(`cell-${currentGridRow}-7`).innerText = parsedQty; // 真實數量歸位
+                        document.getElementById(`cell-${currentGridRow}-9`).innerText = subTrackCode; // 微型碼歸位
                         
-                        document.getElementById(`cell-${currentGridRow+1}-1`).innerText = "";
-                        document.getElementById(`cell-${currentGridRow+1}-2`).innerText = name;
-                        document.getElementById(`cell-${currentGridRow+1}-4`).innerText = thickness;
-                        document.getElementById(`cell-${currentGridRow+1}-5`).innerText = foilType + " " + glassType;
-                        document.getElementById(`cell-${currentGridRow+1}-9`).innerText = subTrackCode;
-
-                        currentGridRow += 2; 
-                        i += 2; 
+                        currentGridRow++;
                     }
-                    // 如果既不是標準 Excel 橫列，也不是項次開頭，但又孤立存在的文字，就依序塞入當前列的 A 欄
-                    else if (currentGridRow <= GRID_ROWS) {
-                        document.getElementById(`cell-${currentGridRow}-1`).innerText = line;
+
+                    // 讓指標指針安全滑動跳過已被處理的子行明細，避免重複處理
+                    i += 3; 
+                } 
+                // 狀況 C：如果是標準已經橫向排好的 Excel 格式 (大於 3 欄且非直式)，就照原樣填入
+                else if (rowData.length >= 3) {
+                    if (currentGridRow <= GRID_ROWS) {
+                        for(let c = 0; c < rowData.length && c < GRID_COLS; c++) {
+                            let cellTarget = document.getElementById(`cell-${currentGridRow}-${c+1}`);
+                            if(cellTarget) cellTarget.innerText = rowData[c];
+                        }
                         currentGridRow++;
                     }
                 }
@@ -403,6 +432,7 @@
         function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_excel_v1')) || []; }
         function saveDB(data) { localStorage.setItem('palletSysDB2026_excel_v1', JSON.stringify(data)); renderTable(); }
 
+        // 小卸線格式 yy-mm-dd
         function formatDateStr(dStr) {
             dStr = dStr.trim();
             if(dStr.length === 8) dStr = dStr.substring(2);
@@ -424,40 +454,25 @@
             return -1;
         }
 
-        /* ==================== 【由網格清單最終匯入暫存庫】 ==================== */
+        /* ==================== 【將平鋪展開後的網格數據最終匯入暫存庫】 ==================== */
         function parseMode1() {
             var db = getDB();
             var showAlert = document.getElementById('enableAlert').checked;
             var successCount = 0;
 
             for(let r = 1; r <= GRID_ROWS; r++) {
-                let cellA = document.getElementById(`cell-${r}-1`).innerText.trim();
-                let cellB = document.getElementById(`cell-${r}-2`).innerText.trim();
+                let itemNo = document.getElementById(`cell-${r}-1`).innerText.trim();
+                let rawDate = document.getElementById(`cell-${r}-2`).innerText.trim();
                 
-                if(/^\d+$/.test(cellA) && cellB.length >= 6 && /^\d+$/.test(cellB)) {
-                    let itemNo = cellA;
-                    let rawDate = cellB;
+                if(/^\d+$/.test(itemNo) && rawDate.length >= 6 && /^\d+$/.test(rawDate)) {
                     let partNo = document.getElementById(`cell-${r}-3`).innerText.trim();
+                    let thickness = document.getElementById(`cell-${r}-4`).innerText.trim();
+                    let foilAndGlass = document.getElementById(`cell-${r}-5`).innerText.trim();
+                    let name = document.getElementById(`cell-${r}-6`).innerText.trim() || "劉浚銘";
                     let mainQty = document.getElementById(`cell-${r}-7`).innerText.trim(); 
-                    
-                    let name = "劉浚銘";
-                    let thickness = "4mil";
-                    let foilAndGlass = "RTF 1078*1";
-                    let subTrackCode = "";
+                    let subTrackCode = document.getElementById(`cell-${r}-9`).innerText.trim();
 
-                    if(r + 1 <= GRID_ROWS) {
-                        let nextA = document.getElementById(`cell-${r+1}-1`).innerText.trim();
-                        let nextB = document.getElementById(`cell-${r+1}-2`).innerText.trim();
-                        
-                        if(nextA === "" && nextB !== "" && !/^\d+$/.test(nextB)) {
-                            name = nextB;
-                            thickness = document.getElementById(`cell-${r+1}-4`).innerText.trim() || thickness;
-                            foilAndGlass = document.getElementById(`cell-${r+1}-5`).innerText.trim() || foilAndGlass;
-                            subTrackCode = document.getElementById(`cell-${r+1}-9`).innerText.trim();
-                        }
-                    }
-
-                    // 100% 忠於格子內的數字，絕對沒有預設 125
+                    // 真實數量防錯：為空就填未填，絕對不亂蓋 125
                     let parsedQty = mainQty || "未填";
 
                     var formattedDate = formatDateStr(rawDate);
@@ -476,14 +491,13 @@
                         subTrack: subTrackCode, isQtyErr: false, isQA: false, printCount: 1
                     });
                     successCount++;
-                    r++; 
                 }
             }
 
             saveDB(db);
             clearGrid();
             document.getElementById('textData1').value = '';
-            alert("網格資料解析完畢！成功將 " + successCount + " 筆非常備數據儲存至本機資料庫。");
+            alert("網格資料平鋪流解析完畢！成功將 " + successCount + " 筆非常備數據儲存至本機資料庫。");
         }
 
         function parseMode2() {
