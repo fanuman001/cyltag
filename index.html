@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>進料棧板標籤管理系統 (字體拉伸與網格精準版)</title>
+    <title>進料棧板標籤管理系統 (忠於真實欄位數據版)</title>
     <style>
         body { font-family: "SimHei", "黑體", "新細明體", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
         .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -35,7 +35,7 @@
 
         #printArea { display: none; }
 
-        /* ==================== 【A4 2x3 絕對座標與 5cm 留白區】 ==================== */
+        /* ==================== 【A4 2x3 絕對座標與高度獨立微調】 ==================== */
         @media print {
             @page { size: A4 portrait; margin: 0 !important; }
             html, body { background: white; margin: 0 !important; padding: 0 !important; width: 210mm; height: 297mm; }
@@ -65,7 +65,7 @@
                 background: transparent;
             }
             
-            /* 2x3 網格精準定位 */
+            /* 2x3 網格定位 */
             .pos-0 { top: 0mm; left: 4mm; }
             .pos-1 { top: 0mm; left: 104mm; }
             .pos-2 { top: 95mm; left: 4mm; }
@@ -73,15 +73,15 @@
             .pos-4 { top: 190mm; left: 4mm; }
             .pos-5 { top: 190mm; left: 104mm; }
 
-            /* 區塊高度分配：保留頂部 5cm (50mm) 留白區 */
+            /* 精準高度分配：保留頂部 5cm (50mm) 留白區 */
             .m1-h1 { height: 50mm; } 
-            .m1-h2 { height: 16mm; display: flex; align-items: center; } /* 中間第二行 */
-            .m1-h3 { height: 12mm; display: flex; align-items: center; } /* 中間第三行 */
-            .m1-h4 { height: 17mm; display: flex; flex-direction: column; justify-content: flex-end; } /* 下方第四行 */
+            .m1-h2 { height: 28mm; display: flex; align-items: center; } /* 上格：調高 1.2cm (16->28mm) */
+            .m1-h3 { height: 12mm; display: flex; align-items: center; } /* 中格：維持不動 (12mm) */
+            .m1-h4 { height: 7mm;  display: flex; flex-direction: column; justify-content: flex-end; } /* 下格：調低 1.0cm (17->7mm) */
 
             .m2-h1 { height: 50mm; } 
-            .m2-h2 { height: 18mm; display: flex; align-items: center; } 
-            .m2-h3 { height: 27mm; display: flex; flex-direction: column; justify-content: flex-end; } 
+            .m2-h2 { height: 28mm; display: flex; align-items: center; } 
+            .m2-h3 { height: 19mm; display: flex; flex-direction: column; justify-content: flex-end; } 
             
             .svg-line-container { width: 100%; height: 100%; display: block; }
         }
@@ -90,7 +90,7 @@
 <body>
 
     <div class="container no-print">
-        <h2>棧板標籤自動流轉系統 (進階版型優化)</h2>
+        <h2>棧板標籤自動流轉系統 (真實數據防錯版)</h2>
         
         <div class="config-panel">
             <label style="cursor: pointer;">
@@ -105,13 +105,13 @@
         </div>
 
         <div id="tab1" class="tab-content active">
-            <p>請直接將非常備自 Excel 或系統複製的格子資料整段貼上（支援自動解析與字體拉伸）：</p>
-            <textarea id="textData1" placeholder="貼上原始資料（包含序號、日期、料號、規格、數量等...）"></textarea>
-            <button onclick="parseMode1()">精準剖析並匯入</button>
+            <p>請從 Excel 複製非常備資料明細，直接貼到下方框內（系統會百分之百依據網格位置讀取真實數量）：</p>
+            <textarea id="textData1" placeholder="請在此貼上 Excel 複製的非常備明細數據..."></textarea>
+            <button onclick="parseMode1()">網格精準解析匯入</button>
         </div>
 
         <div id="tab2" class="tab-content">
-            <p>請直接將常備網頁/Excel 資料整段貼上：</p>
+            <p>請直接將常備網頁或 Excel 資料整段貼上：</p>
             <textarea id="textData2" placeholder="直接貼上進料管理表資料..."></textarea>
             <button onclick="parseMode2()">智慧剖析並匯入</button>
         </div>
@@ -161,7 +161,7 @@
             <button class="danger" onclick="clearAllData()">清空記憶資料庫</button>
         </div>
 
-        <h3>資料庫清單 (異常件自動紅底標記)</h3>
+        <h3>資料庫清單</h3>
         <table class="data-list">
             <thead>
                 <tr>
@@ -205,8 +205,8 @@
             }
         }
 
-        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_v5')) || []; }
-        function saveDB(data) { localStorage.setItem('palletSysDB2026_v5', JSON.stringify(data)); renderTable(); }
+        function getDB() { return JSON.parse(localStorage.getItem('palletSysDB2026_v8')) || []; }
+        function saveDB(data) { localStorage.setItem('palletSysDB2026_v8', JSON.stringify(data)); renderTable(); }
 
         function formatDateStr(dStr) {
             dStr = dStr.trim();
@@ -229,136 +229,81 @@
             return -1;
         }
 
+        /* ==================== 【徹底修正：完全依照網格真實數據，拒絕盲目 125】 ==================== */
         function parseMode1() {
             var txt = document.getElementById('textData1').value;
             if(!txt.trim()) return;
 
-            var blockRaw = txt.split(/修改/);
+            var lines = txt.split('\n');
             var db = getDB();
             var showAlert = document.getElementById('enableAlert').checked;
             var successCount = 0;
 
-            for(var b=0; b<blockRaw.length; b++) {
-                var currentBlock = blockRaw[b].trim();
-                if(!currentBlock) continue;
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                if (!line.trim() || line.indexOf("物料型號") !== -1 || line.indexOf("非常備品") !== -1) continue;
 
-                var linesRaw = currentBlock.split('\n');
-                var cellMatrix = [];
-                for(var i=0; i<linesRaw.length; i++) {
-                    var cells = linesRaw[i].split(/[\t\s]+/).map(function(c){ return c.trim(); }).filter(function(c){ return c!==""; });
-                    if(cells.length > 0) { cellMatrix.push(cells); }
-                }
-
-                var allTokens = [];
-                cellMatrix.forEach(function(row) { allTokens = allTokens.concat(row); });
-
-                if(allTokens.length < 4) continue;
-
-                var prefixNo = "";
-                var rawDate = "";
-                var subTrackCode = "";
-
-                for(var t=0; t<allTokens.length; t++) {
-                    var trackM = allTokens[t].match(/(7-\d{6}-\d{3})/);
-                    if(trackM) { subTrackCode = trackM[1]; break; }
-                }
-
-                var firstToken = allTokens[0];
-                if (/^\d+$/.test(firstToken) && firstToken.length >= 7) {
-                    var len = firstToken.length;
-                    prefixNo = firstToken.substring(0, len - 6); 
-                    rawDate = firstToken.substring(len - 6);     
-                } else if (/^\d+$/.test(firstToken) && firstToken.length === 4 && allTokens[1] && allTokens[1].length === 6 && /^\d+$/.test(allTokens[1])) {
-                    prefixNo = firstToken;
-                    rawDate = allTokens[1];
-                } else {
-                    var cleanHead = firstToken.match(/(\d+)(\d{6})/);
-                    if(cleanHead) {
-                        prefixNo = cleanHead[1];
-                        rawDate = cleanHead[2];
-                    } else {
-                        var numMatch = firstToken.match(/(\d+)/);
-                        prefixNo = numMatch ? numMatch[1] : "ERR";
-                        rawDate = "250808";
-                    }
-                }
-
-                var formattedDate = formatDateStr(rawDate);
-                var name = "劉浚銘"; 
-                var partNo = "";
+                var cells = line.split('\t').map(function(c) { return c.trim(); });
                 
-                for(var t=0; t<allTokens.length; t++) {
-                    var nameM = allTokens[t].match(/^([\u4e00-\u9fa5]{2,4})(.*)/);
-                    if(nameM) {
-                        name = nameM[1];
-                        partNo = nameM[2].trim();
-                        if(!partNo && t + 1 < allTokens.length) { partNo = allTokens[t+1]; }
-                        break;
-                    }
-                }
+                // 第一行特徵：開頭欄位是純數字的項次
+                if (cells.length >= 7 && /^\d+$/.test(cells[0])) {
+                    var itemNo = cells[0];       // 項次
+                    var rawDate = cells[1];      // 進貨日
+                    var partNo = cells[2];       // 物料型號
+                    var glassType = cells[4];    // 玻璃布型號與張數
+                    var mainQty = cells[6] || ""; // 第一行「進量」真實欄位數值
 
-                var thickness = "4mil T/T";
-                var foilType = "RTF 1035*1";
-                var foilSizeOnly = "1035*1";
+                    // 初始化第二行的預期變數
+                    var name = "劉浚銘";
+                    var thickness = "4mil";
+                    var foilType = "RTF";
+                    var subTrackCode = "";
+                    var subQty = "";
 
-                for(var t=0; t<allTokens.length; t++) {
-                    if(allTokens[t].indexOf("mil") !== -1) {
-                        thickness = allTokens[t];
-                        if(t+1 < allTokens.length && (allTokens[t+1].indexOf("/") !== -1 || allTokens[t+1].toUpperCase() === "T/T" || allTokens[t+1].toUpperCase() === "H/H")) {
-                            thickness += " " + allTokens[t+1];
+                    // 檢查下一行是否為對應的第二行（備註、人名、規格細節與庫存量）
+                    if (i + 1 < lines.length) {
+                        var nextCells = lines[i + 1].split('\t').map(function(c) { return c.trim(); });
+                        // 第二行開頭通常是空的，且第二格有人名
+                        if (nextCells[0] === "" && nextCells[1] !== "" && !/^\d+$/.test(nextCells[1])) {
+                            name = nextCells[1];
+                            thickness = nextCells[2] || "4mil";
+                            foilType = nextCells[3] || "RTF";
+                            subQty = nextCells[6] || ""; // 第二行對應的「庫存量」數值
+
+                            // 找微型追蹤碼
+                            for(var k = 0; k < nextCells.length; k++) {
+                                var trackM = nextCells[k].match(/(7-\d{6}-\d{3})/);
+                                if(trackM) { subTrackCode = trackM[1]; break; }
+                            }
+                            i++; // 精準跳過下一行完成合併
                         }
                     }
-                    if(allTokens[t].indexOf("*") !== -1 && allTokens[t].indexOf(".") === -1) {
-                        foilSizeOnly = allTokens[t];
-                        if(t-1 >= 0 && allTokens[t-1].length > 2 && allTokens[t-1].indexOf("mil") === -1 && !/^\d+$/.test(allTokens[t-1])) {
-                            foilType = allTokens[t-1] + " " + foilSizeOnly;
-                        } else {
-                            foilType = foilSizeOnly;
-                        }
+
+                    // 【徹底移除任何強制覆蓋邏輯】
+                    // 優先取第一行的進量，沒有則取第二行的庫存量，若全部沒填就填「未填」
+                    var parsedQty = mainQty || subQty || "未填";
+
+                    var formattedDate = formatDateStr(rawDate);
+                    var finalLine2 = partNo + " " + foilType;
+                    var finalLine3 = thickness + " " + glassType;
+                    var finalLine4 = formattedDate + " " + name + " " + parsedQty;
+
+                    var dupIdx = checkDuplicateKey(db, 'mode1', itemNo);
+                    if(dupIdx !== -1) {
+                        db[dupIdx].printCount = 0;
+                        if(showAlert) { alert("非常備項次【" + itemNo + "】重複，舊資料列印張數歸零。"); }
                     }
+
+                    db.push({
+                        mode: 'mode1', pureCode: itemNo, line2: finalLine2, line3: finalLine3, line4: finalLine4,
+                        subTrack: subTrackCode, isQtyErr: false, isQA: false, printCount: 1
+                    });
+                    successCount++;
                 }
-
-                var emcQty = "";
-                var uQty = "";
-                for(var t=0; t<allTokens.length; t++) {
-                    if(allTokens[t].toUpperCase().indexOf("EMC") !== -1) {
-                        var directEmc = allTokens[t].match(/EMC(\d+)/i);
-                        if(directEmc) { emcQty = directEmc[1]; }
-                        else if(t+1 < allTokens.length) { emcQty = allTokens[t+1]; }
-                    }
-                    var uM = allTokens[t].match(/^(\d+)U/i);
-                    if(uM) uQty = uM[1];
-                    if(/^\d+$/.test(allTokens[t]) && t+1 < allTokens.length && allTokens[t+1].charAt(0).toUpperCase() === 'U') {
-                        uQty = allTokens[t];
-                    }
-                }
-
-                var finalQty = emcQty || uQty || "125";
-                var isQuantityError = false;
-                if(emcQty && uQty && emcQty !== uQty) { isQuantityError = true; }
-
-                var pureFoilName = foilType.replace(foilSizeOnly, "").trim();
-                var finalLine2 = partNo + (pureFoilName ? " " + pureFoilName : "");
-                var finalLine3 = thickness + " " + foilSizeOnly;
-                var finalLine4 = formattedDate + " " + name + " " + finalQty;
-
-                if(!prefixNo) continue;
-
-                var dupIdx = checkDuplicateKey(db, 'mode1', prefixNo);
-                if(dupIdx !== -1) {
-                    db[dupIdx].printCount = 0;
-                    if(showAlert) { alert("編號【" + prefixNo + "】重複進料，舊棧板標籤列印張數已自動歸零。"); }
-                }
-
-                db.push({
-                    mode: 'mode1', pureCode: prefixNo, line2: finalLine2, line3: finalLine3, line4: finalLine4,
-                    subTrack: subTrackCode, isQtyErr: isQuantityError, isQA: false, printCount: 1
-                });
-                successCount++;
             }
             saveDB(db);
             document.getElementById('textData1').value = '';
-            alert("已完成非常備智慧切割！成功匯入 " + successCount + " 筆資料。");
+            alert("網格流轉完成！成功精準匯入 " + successCount + " 筆非常備資料。");
         }
 
         function parseMode2() {
@@ -369,40 +314,25 @@
             var importCount = 0;
             var showAlert = document.getElementById('enableAlert').checked;
 
-            var partNoRegex = /(1-[A-Za-z0-9]{4}-([A-Za-z0-9]{4}|[A-Za-z0-9]{5,6}))/;
-
             for(var i=0; i<lines.length; i++) {
                 var line = lines[i].trim();
-                if(line === "" || line.indexOf("合計") !== -1 || line.indexOf("取消") !== -1 || line.indexOf("原料編號") !== -1) continue;
+                if(line === "" || line.indexOf("合計") !== -1 || line.indexOf("原料編號") !== -1) continue;
 
-                var match = partNoRegex.exec(line);
-                if(match) {
-                    var purePartNo = match[1]; 
-                    var dateNo = ""; 
-                    var dateMatch = line.match(/(20\d{6})/);
-                    if(dateMatch) {
-                        dateNo = formatDateStr(dateMatch[1]);
-                    } else {
-                        var today = new Date();
-                        var yy = String(today.getFullYear()).substring(2);
-                        var mm = today.getMonth() + 1;
-                        var dd = today.getDate();
-                        dateNo = yy + " " + mm + "/" + dd;
+                var cells = line.split('\t').map(function(c) { return c.trim(); });
+                if(cells.length >= 5) {
+                    var dateNo = formatDateStr(cells[1] || "");
+                    var purePartNo = cells[4];
+                    var hasIqc = (line.indexOf("有") !== -1);
+
+                    if(purePartNo && purePartNo.indexOf("-") !== -1) {
+                        var dupIdx = checkDuplicateKey(db, 'mode2', purePartNo);
+                        if(dupIdx !== -1) {
+                            db[dupIdx].printCount = 0;
+                            if(showAlert) { alert("常備基板原料【" + purePartNo + "】重複，舊列印數歸零。"); }
+                        }
+                        db.push({ mode: 'mode2', pureCode: purePartNo, line2: purePartNo, line3: "", line4: dateNo, subTrack: "", isQtyErr: false, isQA: hasIqc, printCount: 1 });
+                        importCount++;
                     }
-
-                    var partNoIdx = match.index;
-                    var backPart = line.substring(partNoIdx + purePartNo.length);
-                    var hasIqc = (backPart.indexOf("有") !== -1);
-                    var uniqueKey = purePartNo;
-
-                    var dupIdx = checkDuplicateKey(db, 'mode2', uniqueKey);
-                    if(dupIdx !== -1) {
-                        db[dupIdx].printCount = 0;
-                        if(showAlert) { alert("常備基板原料【" + purePartNo + "】重複，舊資料列印數已歸零。"); }
-                    }
-                    
-                    db.push({ mode: 'mode2', pureCode: uniqueKey, line2: purePartNo, line3: "", line4: dateNo, subTrack: "", isQtyErr: false, isQA: hasIqc, printCount: 1 });
-                    importCount++;
                 }
             }
             saveDB(db);
@@ -462,7 +392,7 @@
         function updateItem(idx, field, value) {
             var db = getDB();
             db[idx][field] = value;
-            localStorage.setItem('palletSysDB2026_v5', JSON.stringify(db));
+            localStorage.setItem('palletSysDB2026_v8', JSON.stringify(db));
             if(field === 'printCount') { renderTable(); }
         }
 
@@ -476,7 +406,7 @@
 
         function clearAllData() { if(confirm("確定要清空整個資料庫？")) { saveDB([]); } }
 
-        /* ==================== 【關鍵優化：SVG 字體拉伸與動態對齊機制】 ==================== */
+        /* ==================== 【微型碼與字體高度縱向放大拉高機制】 ==================== */
         function makeSemanticSvg(item, rowNum, alignMode, extraQA) {
             var textAnchor = (alignMode === "left") ? "start" : "middle";
             var xPos = (alignMode === "left") ? "2%" : "50%";
@@ -484,84 +414,71 @@
             
             var segments = [];
             var viewBoxHeight = 12; 
-            var fontSizeValue = 11;  
-            var useStretch = false; // 是否啟用長度壓縮拉伸
+            var fontSizeValue = 10;  
 
             if (item.mode === 'mode1') {
                 if (rowNum === 2) {
-                    viewBoxHeight = 14; fontSizeValue = 12; useStretch = true; // 料號較長時啟用拉伸
-                    segments.push({ text: item.line2, isBold: true, color: "#000", isName: false });
+                    viewBoxHeight = 14; fontSizeValue = 10;
+                    segments.push({ text: item.line2, isBold: true, color: "#000" });
                 } 
                 else if (rowNum === 3) {
-                    viewBoxHeight = 12; fontSizeValue = 11;
-                    segments.push({ text: item.line3, isBold: true, color: "#000", isName: false });
+                    viewBoxHeight = 12; fontSizeValue = 10;
+                    segments.push({ text: item.line3, isBold: true, color: "#000" });
                 } 
                 else if (rowNum === 4) {
-                    viewBoxHeight = 12; fontSizeValue = 11;
+                    viewBoxHeight = 15; fontSizeValue = 9.5;
                     var tokens = item.line4.split(/\s+/); 
                     if(tokens.length >= 3) {
-                        segments.push({ text: tokens[0] + " " + tokens[1] + "  ", isBold: true, color: "#000", isName: false });
-                        segments.push({ text: tokens[2] + " ", isBold: false, color: "#444", isName: true }); 
-                        var remainTokens = tokens.slice(3).join(" ");
-                        if(remainTokens) { segments.push({ text: " " + remainTokens, isBold: true, color: colorHex, isName: false }); }
+                        segments.push({ text: tokens[0] + " ", isBold: true, color: "#000" }); // 日期
+                        segments.push({ text: tokens[1] + " ", isBold: false, color: "#333" }); // 人名
+                        var remainTokens = tokens.slice(2).join(" ");
+                        if(remainTokens) { segments.push({ text: "  " + remainTokens, isBold: true, color: colorHex }); } // 真實數量
                     } else {
-                        segments.push({ text: item.line4, isBold: true, color: "#000", isName: false });
+                        segments.push({ text: item.line4, isBold: true, color: "#000" });
                     }
                 }
             } 
             else if (item.mode === 'mode2') {
                 if (rowNum === 2) {
-                    viewBoxHeight = 14; fontSizeValue = 13; useStretch = true;
-                    segments.push({ text: item.line2, isBold: true, color: "#000", isName: false });
+                    viewBoxHeight = 14; fontSizeValue = 11;
+                    segments.push({ text: item.line2, isBold: true, color: "#000" });
                 } 
                 else if (rowNum === 3) {
-                    viewBoxHeight = 12; fontSizeValue = 11;
+                    viewBoxHeight = 12; fontSizeValue = 10;
                     var tokens = item.line4.split(/\s+/); 
                     if(tokens.length >= 2) {
-                        segments.push({ text: tokens[0] + " " + tokens[1], isBold: true, color: "#000", isName: false });
+                        segments.push({ text: tokens[0] + " " + tokens[1], isBold: true, color: "#000" });
                         var remain = tokens.slice(2).join(" ");
-                        if(remain) segments.push({ text: " " + remain, isBold: false, color: "#444", isName: true });
+                        if(remain) segments.push({ text: " " + remain, isBold: false, color: "#333" });
                     } else {
-                        segments.push({ text: item.line4, isBold: true, color: "#000", isName: false });
+                        segments.push({ text: item.line4, isBold: true, color: "#000" });
                     }
                 }
             }
 
-            if(extraQA) { segments.push({ text: extraQA, isBold: true, color: "#000", isName: false }); }
+            if(extraQA) { segments.push({ text: extraQA, isBold: true, color: "#000" }); }
 
             var tspanHtml = '';
-            var fullRawText = "";
             segments.forEach(function(seg) {
                 if(!seg.text) return;
-                fullRawText += seg.text;
-                var strokeAttr = (seg.isBold) ? ' stroke-width="0.4" stroke="'+seg.color+'"' : ' stroke-width="0"';
+                var strokeAttr = (seg.isBold) ? ' stroke-width="0.3" stroke="'+seg.color+'"' : ' stroke-width="0"';
                 var weightAttr = (seg.isBold) ? ' font-weight="900"' : ' font-weight="normal"';
-                if(seg.isName) {
-                    tspanHtml += '<tspan font-weight="normal" stroke-width="0" fill="' + seg.color + '" font-size="8.5">' + seg.text + '</tspan>';
-                } else {
-                    tspanHtml += '<tspan' + weightAttr + strokeAttr + ' fill="' + seg.color + '">' + seg.text + '</tspan>';
-                }
+                tspanHtml += '<tspan' + weightAttr + strokeAttr + ' fill="' + seg.color + '">' + seg.text + '</tspan>';
             });
 
-            // 實作拉伸與防超長縮放機制 (當總字數多於 15 個字時自動等比例壓縮)
-            var stretchAttr = "";
-            if (useStretch && fullRawText.length > 15) {
-                stretchAttr = ' textLength="96" lengthAdjust="spacingAndGlyphs"';
-                xPos = "2%"; // 壓縮時靠左稍微修正留白
-                textAnchor = "start";
-            }
-
+            // 【微型碼精密位置】：置於人名正上方（y="3.2"），取消反白
             var subTrackHtml = '';
             if(item.mode === 'mode1' && rowNum === 4 && item.subTrack) {
-                subTrackHtml = '<text x="44%" y="4.5" font-family="Arial" font-size="2.8" font-weight="bold" text-anchor="start" fill="#FFF" style="mix-blend-mode: difference; letter-spacing: 0.1px;">' + item.subTrack + '</text>';
+                subTrackHtml = '<text x="36%" y="3.2" font-family="Arial" font-size="2.6" font-weight="bold" text-anchor="start" fill="#000000" style="letter-spacing: 0.1px;">' + item.subTrack + '</text>';
             }
 
-            var yPos = viewBoxHeight - 2; 
+            // 【字體拉高】：高度拉長 35%，寬度不縮放
+            var yPos = (viewBoxHeight - 1) / 1.35; 
             return '<svg class="svg-line-container" viewBox="0 0 100 ' + viewBoxHeight + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
-                   '<g>' +
-                   '<text x="'+xPos+'" y="' + yPos + '" font-family="SimHei, 黑體, Arial" font-size="' + fontSizeValue + '" text-anchor="' + textAnchor + '"' + stretchAttr + '>' + tspanHtml + '</text>' +
+                   subTrackHtml + 
+                   '<g transform="scale(1, 1.35)">' +
+                   '<text x="'+xPos+'" y="' + yPos + '" font-family="SimHei, 黑體, Arial" font-size="' + fontSizeValue + '" text-anchor="' + textAnchor + '">' + tspanHtml + '</text>' +
                    '</g>' +
-                   subTrackHtml +
                    '</svg>';
         }
 
